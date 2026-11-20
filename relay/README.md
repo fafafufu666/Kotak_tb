@@ -1,17 +1,38 @@
-# Relay (Raspberry Pi)
+# relay — Raspberry Pi relay
 
-The wearer's phone uploads events and a heartbeat every 5 minutes, and as soon as the bracelet connects or drops. Caregiver phones get alarms by
-Firebase Cloud Messaging push (`push.mjs`), which wakes a locked phone, and over a live
+## Purpose
+
+The server between the wearer's phone and the caregivers. The wearer's phone uploads events and a
+heartbeat every 5 minutes, and as soon as the bracelet connects or drops. Caregiver phones get
+alarms by Firebase Cloud Messaging push (`push.mjs`), which wakes a locked phone, and over a live
 Server-Sent Events stream while the app or web page is open. Node 22 with its built-in SQLite; the
 one package is `firebase-admin`. Without it, or without the key, the relay runs stream-only.
 
-| | |
+## Contents
+
+| File | What it does |
 |---|---|
-| `server.mjs` | The relay. `PORT` (default 8787), `DB_PATH` and `LAN_ONLY` (default on) env vars |
-| `web/index.html` | Caregiver mode in a browser, served at `/` (see below) |
-| `push.mjs` | FCM push: high-priority data messages for FALL/SOS and re-pushes, normal for the rest |
-| `test.mjs` | End-to-end test against a throwaway database |
-| `fall-bracelet-relay.service` | systemd unit for the Pi |
+| `server.mjs` | The relay: HTTP routes, SQLite schema (wearers, caregivers, links, invites, events, push tokens, meta), SSE fan-out, offline and escalation timers. `PORT` (default 8787), `DB_PATH` and `LAN_ONLY` (default on) env vars |
+| `push.mjs` | FCM push: high-priority data messages for FALL/SOS and re-pushes, normal for TEST, LOW_BATTERY, OFF; drops tokens FCM rejects for good |
+| `web/index.html` | Caregiver mode in a browser, served at `/` and `/caregiver` (see below); a single self-contained page |
+| `test.mjs` | End-to-end test: starts `server.mjs` on port 18787 with a throwaway database and drives the API |
+| `package.json` / `package-lock.json` | Node ≥ 22, `npm start` / `npm test`, the `firebase-admin` dependency |
+| `fall-bracelet-relay.service` | systemd unit for the Pi (replace `YOUR_PI_USER`) |
+
+Not in git: `relay.db*` (the database) and `firebase-service-account.json` (the push key).
+
+## Dependencies
+
+- Node 22 (`node:sqlite`, `node:http`), optional `firebase-admin` for push.
+- Clients: the Android app's [`relay/`](../app/src/main/java/com/fallbracelet/relay/README.md)
+  (wearer) and [`caregiver/`](../app/src/main/java/com/fallbracelet/caregiver/README.md)
+  packages, and `web/index.html`.
+
+## Usage notes
+
+```bash
+npm ci && npm test
+```
 
 ## Run on the Pi
 
@@ -68,6 +89,7 @@ Every phone gets a random bearer token; only its SHA-256 is stored.
 
 | Call | Who | What |
 |---|---|---|
+| `GET /v1/health` | anyone | `{ok, service, relayId, time}`; the app's relay discovery looks for this |
 | `POST /v1/wearers` | wearer phone | Register, returns `token` |
 | `PUT /v1/wearers/me` | wearer | Rename (the wearer name caregivers see) |
 | `POST /v1/invites` | wearer | 6-digit code, single use, 15 min |

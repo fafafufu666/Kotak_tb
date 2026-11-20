@@ -1,22 +1,23 @@
-# Bracelet firmware (template)
+# firmware — bracelet firmware (template)
 
-Arduino sketch for the v3 board: Seeed XIAO ESP32-C3, MPU6050, vibration motor, SW2 button,
-400 mAh LiPo. It implements the spec's five states, the three-phase detector, the button and
+## Purpose
+
+Arduino sketches for the bracelet: Seeed XIAO ESP32-C3, MPU6050, vibration motor, SW2 button,
+400 mAh LiPo. They implement the spec's five states, the three-phase detector, the button and
 buzz patterns, the battery rules, and **alerts over BLE to the Android app** (spec option B).
 The wire format is in [`../PROTOCOL.md`](../PROTOCOL.md).
 
-| File | What it does |
+## Contents
+
+| Directory | What it is |
 |---|---|
-| `config.h` | Every pin and number from the spec's settings table |
-| `ble_protocol.h` | UUIDs and packet layouts shared with the app |
-| `fall_bracelet.ino` | State machine, sleep, countdown, alerts, daily check-in |
-| `detector.*` | Free fall → impact → stillness, plus the orientation / strong-impact check |
-| `sensor.*` | MPU6050 at 100 Hz into its FIFO (accelerometer only, gyro in standby), motion-wake |
-| `button.*` | Short press, 2–4 s SOS, 5 s off, with the 2 s tick |
-| `motor.*` | Non-blocking vibration patterns |
-| `battery.*` | VBAT on D1, 16-sample average, 3.3–4.2 V → % |
-| `storage.*` | NVS: setup values and the event queue (survives reboots until the phone ACKs) |
-| `ble_link.*` | NimBLE peripheral, event delivery with retries |
+| [`fall_bracelet/`](fall_bracelet/README.md) | The bracelet firmware (XIAO ESP32-C3; also builds for an ESP32 DevKit) |
+| [`fall_bracelet_oled/`](fall_bracelet_oled/README.md) | Copy of `fall_bracelet/` with a 0.96" OLED status display, DevKit / breadboard only |
+| [`ble_msg_test/`](ble_msg_test/README.md) | Sensorless stand-in bracelet: type commands to send events to the app |
+
+**`ble_protocol.h` exists in all three folders** (Arduino sketches can't include files outside
+their own folder). Change them together with `app/.../ble/BleProtocol.kt` and `PROTOCOL.md`.
+`fall_bracelet_oled/` also copies every other shared file.
 
 ## Build
 
@@ -24,8 +25,7 @@ The wire format is in [`../PROTOCOL.md`](../PROTOCOL.md).
    **XIAO_ESP32C3**.
 2. Libraries: **NimBLE-Arduino 2.x** (h2zero) and **Adafruit MPU6050** (pulls in Adafruit
    Unified Sensor and BusIO).
-3. Open `fall_bracelet/fall_bracelet.ino`, check the pins at the top of `config.h` against the
-   schematic, upload.
+3. Open `fall_bracelet/fall_bracelet.ino` and upload.
 
 ```bash
 arduino-cli compile --fqbn esp32:esp32:XIAO_ESP32C3 firmware/fall_bracelet

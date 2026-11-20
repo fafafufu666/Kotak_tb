@@ -9,10 +9,35 @@ the relay, which alarms the caregivers by push notification on their phones or i
 bracelet ──BLE──▶ wearer's phone ──HTTP──▶ relay (Pi) ──push / live stream──▶ caregivers
 ```
 
-- [`app/`](app) — Android app (Kotlin, Jetpack Compose, min SDK 26), one app for both wearer and caregiver
-- [`firmware/`](firmware) — Arduino sketches for the XIAO ESP32-C3 and an ESP32 DevKit ([build notes](firmware/README.md))
-- [`relay/`](relay) — Node relay for the Raspberry Pi, with a caregiver web page ([setup and API](relay/README.md))
-- [`PROTOCOL.md`](PROTOCOL.md) — the BLE contract between bracelet and app
+## Tech stack
+
+| Part | Stack |
+|---|---|
+| Bracelet | Seeed XIAO ESP32-C3, MPU6050, Arduino (esp32 core 3.x), NimBLE-Arduino 2.x |
+| Phone app | Kotlin, Jetpack Compose / Material 3, Room, DataStore, Firebase Cloud Messaging; Gradle 9 wrapper, AGP 9.1, min SDK 26, target 36 |
+| Relay | Node 22 (built-in SQLite, HTTP, Server-Sent Events), `firebase-admin`, systemd on a Raspberry Pi |
+
+## Directory map
+
+| Path | What's there |
+|---|---|
+| [`app/`](app/README.md) | Android app module, one app for both wearer and caregiver |
+| ↳ [`app/src/main/java/com/fallbracelet/`](app/src/main/java/com/fallbracelet/README.md) | App source: managers, alerts, foreground service |
+| ↳ [`ble/`](app/src/main/java/com/fallbracelet/ble/README.md) | BLE protocol and connection to the bracelet |
+| ↳ [`data/`](app/src/main/java/com/fallbracelet/data/README.md) | Event store, upload queue, settings, recordings |
+| ↳ [`relay/`](app/src/main/java/com/fallbracelet/relay/README.md) | HTTP client for the Pi relay, relay discovery |
+| ↳ [`caregiver/`](app/src/main/java/com/fallbracelet/caregiver/README.md) | Caregiver mode: push, live stream, alarm |
+| ↳ [`ui/`](app/src/main/java/com/fallbracelet/ui/README.md) | Activity, view model, Compose screens |
+| [`firmware/`](firmware/README.md) | Arduino sketches, DevKit wiring, power and pre-release notes |
+| ↳ [`fall_bracelet/`](firmware/fall_bracelet/README.md) | The bracelet firmware |
+| ↳ [`fall_bracelet_oled/`](firmware/fall_bracelet_oled/README.md) | DevKit copy with an OLED status display |
+| ↳ [`ble_msg_test/`](firmware/ble_msg_test/README.md) | Stand-in bracelet for testing the app by hand |
+| [`relay/`](relay/README.md) | Node relay for the Raspberry Pi, caregiver web page, API |
+| [`PROTOCOL.md`](PROTOCOL.md) | The BLE contract between bracelet and app |
+| `gradle/` | Gradle wrapper and `libs.versions.toml` (all library and plugin versions) |
+| `build.gradle.kts`, `settings.gradle.kts`, `gradle.properties` | Root Gradle setup: plugins, repositories, the single `:app` module, 4 GB JVM heap |
+
+The PCB (KiCad) and the 3D-printed case are kept outside this repo.
 
 ## The app
 
@@ -44,14 +69,33 @@ all history, with Acknowledge on alarms. A caregiver can follow several wearers.
 
 The relay also serves the same caregiver view as a web page at `http://<pi address>:8787/`.
 
-## Build
+## Build and run
+
+**App** (needs JDK 17+ and the Android SDK; `app/google-services.json` from the Firebase
+project, not in git):
 
 ```bash
 ./gradlew :app:assembleDebug
 ```
 
-Needs `app/google-services.json` from the Firebase project (not in git). Debug builds point at
-the relay address in `app/src/debug/res/values/relay.xml`; the app also finds the relay by
-itself on the local WiFi if its address changes.
+```bash
+./gradlew :app:testDebugUnitTest
+```
+
+Debug builds point at the relay address in `app/src/debug/res/values/relay.xml`; the app also
+finds the relay by itself on the local WiFi if its address changes.
+
+**Firmware** (`arduino-cli` with the esp32 core 3.x and the libraries in
+[`firmware/README.md`](firmware/README.md)):
+
+```bash
+arduino-cli compile --fqbn esp32:esp32:XIAO_ESP32C3 firmware/fall_bracelet
+```
+
+**Relay** (Node 22; deploy steps for the Pi in [`relay/README.md`](relay/README.md)):
+
+```bash
+cd relay && npm ci && npm test && npm start
+```
 
 The UI uses the dark palette from the project's web theme (`ui/theme/Theme.kt`).

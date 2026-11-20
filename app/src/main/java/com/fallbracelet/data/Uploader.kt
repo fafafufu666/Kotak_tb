@@ -2,17 +2,11 @@ package com.fallbracelet.data
 
 /** Where stored events go so caregivers see them. Keyed by (deviceAddress, seq) on the far side. */
 interface EventRelay {
-    /** False until the relay (Firebase) is set up and signed in. */
+    /** False until a relay address is set and this phone has registered with it. */
     val configured: Boolean
 
     /** True once the relay has the event. Uploading the same (deviceAddress, seq) twice must be harmless. */
     suspend fun upload(event: EventEntity): Boolean
-}
-
-/** Placeholder until the Firebase relay exists: nothing is uploaded, events wait in the queue. */
-object NoRelay : EventRelay {
-    override val configured = false
-    override suspend fun upload(event: EventEntity) = false
 }
 
 /** The events not yet accepted by the relay. */
