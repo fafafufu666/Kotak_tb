@@ -20,6 +20,7 @@ void begin();
 void play(Pattern p, uint8_t countdownS = 0);
 void status(uint8_t quarters);  // 1–4 short buzzes
 void stop();
+void holdOffForSleep();          // drive the pin low and latch it through deep sleep
 void update(uint32_t now);
 bool busy();
 }  // namespace motor

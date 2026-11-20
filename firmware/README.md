@@ -14,7 +14,7 @@ The wire format is in [`../PROTOCOL.md`](../PROTOCOL.md).
 | `sensor.*` | MPU6050 at 100 Hz into its FIFO (accelerometer only, gyro in standby), motion-wake |
 | `button.*` | Short press, 2–4 s SOS, 5 s off, with the 2 s tick |
 | `motor.*` | Non-blocking vibration patterns |
-| `battery.*` | VBAT on D0, 16-sample average, 3.3–4.2 V → % |
+| `battery.*` | VBAT on D1, 16-sample average, 3.3–4.2 V → % |
 | `storage.*` | NVS: setup values and the event queue (survives reboots until the phone ACKs) |
 | `ble_link.*` | NimBLE peripheral, event delivery with retries |
 
@@ -44,7 +44,7 @@ The sketch also builds for a classic ESP32 DevKit (ESP32-WROOM-32): pick the boa
 | SCL | D5 | | |
 | INT | D2 | | |
 
-With nothing on D34, set `PROTOTYPE_NO_BATTERY` to 1. If an upload won't start, unplug INT
+`PROTOTYPE_NO_BATTERY` is on for the DevKit build, so an empty D34 doesn't read as a flat battery; set it to 0 in `config.h` if you wire a divider there. The XIAO build always reads its real battery. If an upload won't start, unplug INT
 from D2 (GPIO2 must be low at boot) or hold BOOT while it connects.
 
 ### DevKit with a 0.96" I2C OLED (`fall_bracelet_oled/`)
@@ -76,8 +76,11 @@ the display. The panel draws several mA while on, so this build is for the bread
 
 ## Before trusting it
 
-- **Pins are placeholders.** SW2 and the MPU6050 INT line must sit on GPIO0–5 to wake the
-  chip from deep sleep, and SW2 needs a pull-up that holds during deep sleep.
+- **Pins follow the current PCB:** SW2 on D0 (GPIO2, 10 kΩ external pull-up R4), battery
+  divider on D1 (GPIO3), INT on D2, motor on D3, SDA/SCL on D4/D5. A board made before the
+  12 Nov GPIO swap has SW2 and the divider the other way round. SW2 and INT must stay on
+  GPIO0–5 to wake the chip from deep sleep. GPIO2 is a strapping pin, so don't hold the
+  button while powering on.
 - **Thresholds are untuned.** Use the app's Live tab to stream and record labelled trials
   (spec test plan, step 1), then replay them through `detector.cpp` on a laptop.
 - **Power.** The loop currently idles with `delay()`. Reaching the spec's 1–2 mA in

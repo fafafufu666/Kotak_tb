@@ -126,12 +126,12 @@ void raiseAlarm(EventType type, float impactG, uint32_t now) {
 // Deep sleep until the button (and, when idle, movement) wakes the chip. setup() runs again.
 [[noreturn]] void deepSleep(SleepReason reason) {
   sleepReason = reason;
-  motor::stop();
+  motor::holdOffForSleep();
   display::off();
   while (button::isDown()) delay(10);  // otherwise the held button wakes it straight away
   delay(50);
 
-  // TODO: SW2 needs a pull-up that holds in deep sleep; an external 100 kΩ is the safe choice.
+  // On the XIAO board R4 (10 kΩ) holds SW2 high in deep sleep; the internal pull-up is a backup.
 #if CONFIG_IDF_TARGET_ESP32
   // The classic ESP32 wakes through its RTC domain: ext0 for the button, ext1 for INT.
   rtc_gpio_pullup_en((gpio_num_t)PIN_BUTTON);

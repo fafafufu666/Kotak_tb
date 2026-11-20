@@ -1,5 +1,5 @@
 // Every number the firmware uses. Values marked (setup) are defaults that the phone app can
-// change over BLE; they are then stored in NVS (see settings.cpp).
+// change over BLE; they are then stored in NVS (see storage.cpp).
 // The detection thresholds are starting points, not validated values — tune them with
 // recorded data (Live tab in the app) before relying on them.
 #pragma once
@@ -9,10 +9,10 @@
 // Picked by the board selected in the IDE.
 #if CONFIG_IDF_TARGET_ESP32C3
 // Seeed XIAO ESP32-C3 (the v3 bracelet).
-// TODO: check every pin against the v3 schematic. The button and the MPU6050 INT line must be
-// on GPIO0–GPIO5, the only pins that can wake the ESP32-C3 from deep sleep.
-#define PIN_VBAT     D0   // GPIO2, battery divider
-#define PIN_BUTTON   D1   // GPIO3, SW2 to GND (needs a pull-up that survives deep sleep)
+// Matches the PCB after the 12 Nov GPIO swap. The button and the MPU6050 INT line must be on
+// GPIO0–GPIO5, the only pins that can wake the ESP32-C3 from deep sleep.
+#define PIN_BUTTON   D0   // GPIO2, SW2 to GND; 10k pull-up R4 keeps this boot strapping pin high
+#define PIN_VBAT     D1   // GPIO3, battery divider (ADC1)
 #define PIN_MPU_INT  D2   // GPIO4, MPU6050 INT, active high
 #define PIN_MOTOR    D3   // GPIO5, motor driver transistor
 #define PIN_SDA      D4   // GPIO6
@@ -34,8 +34,13 @@
 
 // Breadboard prototype with no battery divider on PIN_VBAT (e.g. ESP32 + MPU6050 on USB power).
 // Without this the empty pin reads as a flat battery and the firmware switches itself off.
-// Set back to 0 for the real board.
+// On for the DevKit build only; the XIAO bracelet always reads its real battery. Set the DevKit
+// value to 0 if you wire a divider to D34.
+#if CONFIG_IDF_TARGET_ESP32
 #define PROTOTYPE_NO_BATTERY 1
+#else
+#define PROTOTYPE_NO_BATTERY 0
+#endif
 
 // ---- OLED ----------------------------------------------------------------------------------
 // 0.96" SSD1306 sharing PIN_SDA/PIN_SCL with the MPU6050 (which sits at 0x68).

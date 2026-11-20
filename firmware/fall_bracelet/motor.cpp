@@ -1,6 +1,7 @@
 #include "motor.h"
 
 #include <Arduino.h>
+#include <driver/gpio.h>
 
 #include "config.h"
 
@@ -28,8 +29,19 @@ void set(bool v) {
 namespace motor {
 
 void begin() {
+  gpio_hold_dis((gpio_num_t)PIN_MOTOR);  // released after a deep sleep latched it low
   pinMode(PIN_MOTOR, OUTPUT);
   set(false);
+}
+
+// The PCB has no pull-down on Q1's base, so an unheld pin would float in deep sleep and could
+// half-switch the motor. Latch it low; begin() releases it on the next boot.
+void holdOffForSleep() {
+  stop();  // pin low
+  gpio_hold_en((gpio_num_t)PIN_MOTOR);
+#if !SOC_GPIO_SUPPORT_HOLD_SINGLE_IO_IN_DSLP
+  gpio_deep_sleep_hold_en();  // chips whose digital pads need the global hold switch in deep sleep
+#endif
 }
 
 void play(Pattern p, uint8_t countdownS) {

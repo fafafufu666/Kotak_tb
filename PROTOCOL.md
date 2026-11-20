@@ -6,8 +6,8 @@ sides together and bump `PROTOCOL_VERSION`.
 
 The spec leaves the alert channel open; this implements **option B — BLE → phone companion
 app**. The bracelet detects and queues events; the phone stores them, raises a notification,
-optionally texts the caregivers, and then acknowledges each event so the bracelet can drop it
-from flash.
+queues them for the relay (which alerts the caregivers, see [`relay/README.md`](relay/README.md)),
+and then acknowledges each event so the bracelet can drop it from flash.
 
 All integers are **little-endian**. The device advertises as `FallBracelet-XXXX` (last two
 bytes of the MAC) with the service UUID in the advertisement.
