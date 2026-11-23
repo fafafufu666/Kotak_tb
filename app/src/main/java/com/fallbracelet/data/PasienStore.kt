@@ -11,6 +11,8 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 
 /** What a [KejadianPasien] row records. */
@@ -51,6 +53,41 @@ data class JamMinumEntity(
     val menitDalamHari: Int,
 )
 
+/**
+ * One reminder moment (P5 and the dose notifications): when it was handled, what it did, and
+ * for the special reminder which button the patient pressed. A pending "Ingatkan x menit lagi"
+ * is a TUNDA row with [ditanganiPada] still null.
+ */
+@Entity(tableName = "log_pengingat")
+data class LogPengingat(
+    /** `adherence.Pemicu.kunci`, with "demo/" in front for rows made in demo mode. */
+    @PrimaryKey val kunci: String,
+    /** The dose date (ISO). */
+    val tanggal: String,
+    /** `adherence.JenisPemicu` name. */
+    val jenis: String,
+    val urutan: Int,
+    /** When the moment was due, epoch ms (virtual clock in demo mode). */
+    val waktuPemicu: Long,
+    /** When it was handled (shown or skipped), epoch ms, virtual clock; null = still pending. */
+    val ditanganiPada: Long?,
+    /** `adherence.Tindakan` name, or [DILEWATI]. */
+    val hasil: String?,
+    /** The message id shown (special reminder only). */
+    val pesanId: String?,
+    /** Button pressed on the special reminder: [AKSI_SUDAH_MINUM], [AKSI_TUNDA] or [AKSI_DITUTUP]. */
+    val aksi: String?,
+    val aksiPada: Long?,
+    val demo: Boolean,
+) {
+    companion object {
+        const val DILEWATI = "DILEWATI"
+        const val AKSI_SUDAH_MINUM = "SUDAH_MINUM"
+        const val AKSI_TUNDA = "TUNDA"
+        const val AKSI_DITUTUP = "DITUTUP"
+    }
+}
+
 @Dao
 interface PasienDao {
     @Insert
@@ -76,18 +113,48 @@ interface PasienDao {
 
     @Query("DELETE FROM jam_minum")
     suspend fun hapusJamMinum()
+
+    @Query("SELECT * FROM log_pengingat ORDER BY waktuPemicu ASC")
+    fun logPengingat(): Flow<List<LogPengingat>>
+
+    @Query("SELECT * FROM log_pengingat")
+    suspend fun logPengingatSekarang(): List<LogPengingat>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun simpanLog(l: LogPengingat)
+
+    @Query("UPDATE log_pengingat SET aksi = :aksi, aksiPada = :pada WHERE kunci = :kunci AND aksi IS NULL")
+    suspend fun catatAksi(kunci: String, aksi: String, pada: Long)
+
+    @Query("DELETE FROM log_pengingat WHERE demo = 1")
+    suspend fun hapusLogDemo()
+
+    @Query("DELETE FROM log_pengingat")
+    suspend fun hapusSemuaLog()
 }
 
 /**
  * The patient's records, in their own database file so the bracelet's `bracelet.db` (and its
  * migrations) stays untouched.
  */
-@Database(entities = [KejadianPasien::class, JamMinumEntity::class], version = 1, exportSchema = false)
+@Database(entities = [KejadianPasien::class, JamMinumEntity::class, LogPengingat::class], version = 2, exportSchema = false)
 abstract class PasienDatabase : RoomDatabase() {
     abstract fun pasien(): PasienDao
 
     companion object {
         fun create(context: Context): PasienDatabase =
-            Room.databaseBuilder(context, PasienDatabase::class.java, "pasien.db").build()
+            Room.databaseBuilder(context, PasienDatabase::class.java, "pasien.db").addMigrations(MIGRASI_1_2).build()
+
+        /** Stage 2b: adds the reminder log; earlier records stay. */
+        val MIGRASI_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `log_pengingat` (`kunci` TEXT NOT NULL, `tanggal` TEXT NOT NULL, " +
+                        "`jenis` TEXT NOT NULL, `urutan` INTEGER NOT NULL, `waktuPemicu` INTEGER NOT NULL, " +
+                        "`ditanganiPada` INTEGER, `hasil` TEXT, `pesanId` TEXT, `aksi` TEXT, `aksiPada` INTEGER, " +
+                        "`demo` INTEGER NOT NULL, PRIMARY KEY(`kunci`))"
+                )
+            }
+        }
     }
 }

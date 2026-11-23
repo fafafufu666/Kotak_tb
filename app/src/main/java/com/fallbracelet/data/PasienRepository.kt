@@ -20,6 +20,8 @@ data class PengaturanPasien(
     /** The patient chose to go on without pairing a box (the simulated box is used). */
     val kotakDilewati: Boolean = false,
     val demo: PengaturanDemo = PengaturanDemo(),
+    /** When the patient agreed on P1 Persetujuan, epoch ms; null = not yet. */
+    val persetujuanPada: Long? = null,
 ) {
     val sudahMulai: Boolean get() = namaPanggilan.isNotBlank() && tanggalMulai != null
 }
@@ -34,6 +36,7 @@ class PasienRepository(private val context: Context) {
         val demoAktif = booleanPreferencesKey("demo_aktif")
         val demoGeserMs = longPreferencesKey("demo_geser_ms")
         val demoMulai = stringPreferencesKey("demo_tanggal_mulai")
+        val persetujuan = longPreferencesKey("persetujuan_pada")
     }
 
     val pengaturan: Flow<PengaturanPasien> = context.pasienStore.data.map { p ->
@@ -46,8 +49,11 @@ class PasienRepository(private val context: Context) {
                 geserJam = Duration.ofMillis(p[Keys.demoGeserMs] ?: 0),
                 tanggalMulai = p[Keys.demoMulai]?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
             ),
+            persetujuanPada = p[Keys.persetujuan],
         )
     }
+
+    suspend fun setuju(pada: Long) = context.pasienStore.edit { it[Keys.persetujuan] = pada }
 
     suspend fun mulai(nama: String, tanggalMulai: LocalDate) = context.pasienStore.edit {
         it[Keys.nama] = nama.trim()

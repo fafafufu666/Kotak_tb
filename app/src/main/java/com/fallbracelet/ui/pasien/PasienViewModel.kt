@@ -19,6 +19,7 @@ class PasienViewModel(app: Application) : AndroidViewModel(app) {
     val pengaturan = p.pengaturan
     val aturan = p.aturan
 
+    fun setuju() = viewModelScope.launch { p.setuju() }
     fun mulai(nama: String, tanggalMulai: LocalDate, jam: LocalTime) = viewModelScope.launch { p.mulai(nama, tanggalMulai, jam) }
     fun ubahNama(nama: String) = viewModelScope.launch { p.repo.setNama(nama) }
     fun ubahJamMinum(jam: LocalTime) = viewModelScope.launch { p.ubahJamMinum(jam) }

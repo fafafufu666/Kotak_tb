@@ -112,7 +112,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _finding.value = true
         val found = m.finder.findNow()
         _finding.value = false
-        _relayMessage.value = if (found == null) "No relay found on this WiFi. Is the Pi on the same network?" else null
+        _relayMessage.value = if (found == null) "Relay tidak ditemukan di WiFi ini. Pastikan relay dan HP ada di jaringan yang sama." else null
         if (found != null) m.syncNow()
     }
 
@@ -126,7 +126,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun newInvite() = viewModelScope.launch {
         runCatching { m.relay.ensureRegistered(); m.relay.invite() }
             .onSuccess { _invite.value = it; _relayMessage.value = null }
-            .onFailure { _relayMessage.value = "Couldn't make an invite: ${it.message}" }
+            .onFailure { _relayMessage.value = "Gagal membuat kode undangan: ${it.message}" }
     }
 
     fun refreshCaregivers() = viewModelScope.launch {
@@ -135,7 +135,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun removeCaregiver(id: Long) = viewModelScope.launch {
-        runCatching { m.relay.removeCaregiver(id) }.onFailure { _relayMessage.value = "Couldn't remove: ${it.message}" }
+        runCatching { m.relay.removeCaregiver(id) }.onFailure { _relayMessage.value = "Gagal menghapus: ${it.message}" }
         refreshCaregivers()
         m.syncNow()
     }

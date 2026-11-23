@@ -47,6 +47,8 @@ fun BerandaScreen(vm: PasienViewModel, app: AppViewModel) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         JudulLayar(stringResource(R.string.app_name), stringResource(R.string.beranda_halo, keadaan.pengaturan.namaPanggilan))
         Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            PeringatanIzin(adaKotak = settings.deviceAddress != null)
+
             // Progress ring
             KartuPasien {
                 Row(verticalAlignment = Alignment.CenterVertically) {
