@@ -21,7 +21,12 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      # Runner GitHub sudah punya Android SDK; langkah ini hanya menerima lisensinya.
+      # Platform yang kurang (misalnya compileSdk 37) diunduh otomatis oleh Gradle.
       - uses: android-actions/setup-android@v3
+        with:
+          packages: ""
+          log-accepted-android-sdk-licenses: false
 
       - uses: gradle/actions/setup-gradle@v4
 
