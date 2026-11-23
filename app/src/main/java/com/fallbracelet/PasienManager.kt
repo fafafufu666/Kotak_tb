@@ -10,6 +10,8 @@ import com.fallbracelet.adherence.JadwalPengingat
 import com.fallbracelet.adherence.JamMinumBerlaku
 import com.fallbracelet.adherence.JenisPemicu
 import com.fallbracelet.adherence.LogikaKepatuhan
+import com.fallbracelet.adherence.ModeBepergian
+import com.fallbracelet.adherence.PeriodeBepergian
 import com.fallbracelet.adherence.PembacaAturan
 import com.fallbracelet.adherence.Pemicu
 import com.fallbracelet.adherence.RencanaEskalasi
@@ -83,6 +85,10 @@ data class KeadaanPasien(
     val logPengingat: List<LogPengingat>,
     /** ESKALASI records of the current mode (demo or real), oldest first. */
     val eskalasi: List<EskalasiEntity> = emptyList(),
+    /** Travel mode stretches of the current mode (demo or real). */
+    val periodeBepergian: List<PeriodeBepergian> = emptyList(),
+    /** The stretch covering today, if travel mode is on (P9). */
+    val bepergian: PeriodeBepergian? = null,
 )
 
 /**
@@ -145,6 +151,10 @@ class PasienManager(
         // whether a reminder or an ESKALASI is due and sets the alarm for the next moment.
         scope.launch { keadaan.collect { periksaPengingat() } }
         scope.launch { sinkronLoop() }
+        // A changed day (a dose taken or missed, travel mode, a new day): the PMO's row follows at once.
+        scope.launch {
+            keadaan.filterNotNull().map { ringkasanJson(it).toString() }.distinctUntilChanged().collect { pemicuSinkron.trySend(Unit) }
+        }
         // A new relay address (typed, found on the WiFi) or a new registration: sync at once.
         scope.launch {
             hpFlow.map { it.relayUrl to it.wearerToken }.distinctUntilChanged().collect { pemicuSinkron.trySend(Unit) }
@@ -180,7 +190,12 @@ class PasienManager(
         val hariKe = LogikaKepatuhan.hariKe(mulai, hariIniTanggal)
         val sampai = minOf(hariIniTanggal, mulai.plusDays(a.pengobatan.totalHari - 1L))
         val dipantau = RingkasanHarian.dipantauSejak(p.dipantauSejak, p.demo)
-        val semua = RingkasanHarian.hari(mulai, sampai, riwayatJam, zona, sekarang, buka, manual, a.dosis, dipantauSejak = dipantau)
+        val periode = p.bepergian.filter { it.demo == p.demo.aktif }
+        val bepergianPada = { t: LocalDate -> ModeBepergian.aktifPada(t, periode) }
+        val semua = RingkasanHarian.hari(
+            mulai, sampai, riwayatJam, zona, sekarang, buka, manual, a.dosis,
+            bepergianPada = bepergianPada, dipantauSejak = dipantau,
+        )
         val statusHarian = semua.map { it.status }
         return KeadaanPasien(
             pengaturan = p,
@@ -204,6 +219,8 @@ class PasienManager(
             logPengingat = log.filter { it.demo == p.demo.aktif },
             // In demo mode only this run's rows (see PasienRepository.demoSesi).
             eskalasi = esk.filter { if (p.demo.aktif) it.demo && it.perangkat == "demo-" + p.demo.sesi else !it.demo },
+            periodeBepergian = periode,
+            bepergian = ModeBepergian.aktif(hariIniTanggal, periode),
         )
     }
 
@@ -398,7 +415,9 @@ class PasienManager(
         // k.eskalasi holds this mode's rows only, and "Atur ulang demo" deletes the demo ones,
         // so in demo mode these are the current run's.
         val sudah = k.eskalasi.map { LocalDate.parse(it.tanggal) }.toSet()
-        val rencana = RencanaEskalasi.rencanakan(k.semuaHari, sudah, a.eskalasi, a.modeBepergian)
+        val rencana = RencanaEskalasi.rencanakan(k.semuaHari, sudah, a.eskalasi, a.modeBepergian) {
+            ModeBepergian.aktifPada(it, k.periodeBepergian)
+        }
         if (rencana.kirim == null) return
         val perangkat = if (demo) "demo-" + repo.demoSesi() else EskalasiEntity.PERANGKAT_NYATA
         fun rekam(tanggal: LocalDate, kirim: Boolean) = EskalasiEntity(
@@ -488,11 +507,35 @@ class PasienManager(
             .put("terakhirDibuka", k.terakhirDibuka?.toEpochMilli() ?: JSONObject.NULL)
             .put("hariRawan", k.hariRawan.rawan)
             .put("terlewatBerturut", k.terlewatBerturut)
+            .put("bepergianSampai", k.bepergian?.sampai?.toString() ?: JSONObject.NULL)
             .put("hari", hari)
     }
 
     /** "Kirim ulang ke relay sekarang", e.g. after the relay address changed. */
     fun sinkronSekarang() { pemicuSinkron.trySend(Unit) }
+
+    // --- Travel mode (P9) ------------------------------------------------------------------------
+
+    /** Travel mode from today for [lamaHari] days (at most `mode_bepergian.maks_hari`); the PMO sees it. */
+    suspend fun nyalakanBepergian(lamaHari: Int) {
+        val p = repo.pengaturan.first()
+        val (waktu, demo) = sekarang()
+        val hariIni = waktu.atZone(zona).toLocalDate()
+        val lain = p.bepergian.filter { it.demo != demo }
+        val ini = p.bepergian.filter { it.demo == demo }
+        repo.setBepergian(lain + ModeBepergian.nyalakan(hariIni, lamaHari, aturan.aturan.modeBepergian, ini, demo))
+        pemicuSinkron.trySend(Unit)
+    }
+
+    /** Travel mode off from today; the days already in it keep their status. */
+    suspend fun matikanBepergian() {
+        val p = repo.pengaturan.first()
+        val (waktu, demo) = sekarang()
+        val hariIni = waktu.atZone(zona).toLocalDate()
+        val lain = p.bepergian.filter { it.demo != demo }
+        repo.setBepergian(lain + ModeBepergian.matikan(hariIni, p.bepergian.filter { it.demo == demo }))
+        pemicuSinkron.trySend(Unit)
+    }
 
     // --- Demo mode (PRD section 9) -----------------------------------------------------------
 
