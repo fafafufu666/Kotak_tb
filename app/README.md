@@ -15,6 +15,8 @@ original FallBracelet app); the Kotlin package stays `com.fallbracelet`.
 | `google-services.json` | Firebase config for FCM. **Not in git**, optional: without it the app builds with no push (caregivers use the relay's live stream). CI writes it from the `GOOGLE_SERVICES_JSON` secret when set |
 | [`src/main/java/com/fallbracelet/`](src/main/java/com/fallbracelet/README.md) | All app source |
 | `src/main/AndroidManifest.xml` | Permissions (BLE, notifications, foreground services, boot, full-screen intent, battery optimisation, internet), `MainActivity`, `AlarmActivity`, `BraceletService`, `CaregiverService`, `FcmService`, `AckReceiver`, `BootReceiver`, `FileProvider` |
+| `src/main/assets/aturan_program.json` | Program rules and message texts (PRD section 8). Values are placeholders ([CONTOH] / [DIISI ABYAN]) until Abyan sets them |
+| `src/main/assets/aturan_bawaan.json` | Fallback copy of the rules, used section by section when `aturan_program.json` has a broken section. Not edited by hand |
 | `src/main/res/` | App name, empty `default_relay_url`, theme and colours, launcher and status-bar icons, `xml/file_paths.xml` (shares `files/recordings/`) |
 | `src/debug/AndroidManifest.xml` | Debug only: allows cleartext HTTP to the relay |
 | `src/debug/res/values/relay.xml` | Debug only: `default_relay_url` = the home Pi, `http://192.168.0.104:8787` |
@@ -28,12 +30,15 @@ original FallBracelet app); the Kotlin package stays `com.fallbracelet`.
 | `AlertPathTest.kt` | Which events alarm whom, the offline warning, the upload queue |
 | `ForegroundStartGateTest.kt` | Stopping `CaregiverService` during startup doesn't crash |
 | `HistoryViewTest.kt` | Caregiver Day / Week / All periods |
+| `AturanProgramTest.kt` | Both rules files are valid; a broken section falls back alone with a warning |
+| `LogikaKepatuhanTest.kt` | PRD section 7: day and phase, dose status and window edges, midnight, vulnerable days, messages, escalation |
 
 ## Dependencies
 
 From `gradle/libs.versions.toml`: Compose BOM, Material 3, Activity Compose, Lifecycle
 (ViewModel, runtime, service), kotlinx-coroutines (+ play-services), Room (KSP), DataStore
-Preferences, Firebase BOM / Messaging, JUnit 4. Talks to the bracelet over BLE
+Preferences, Firebase BOM / Messaging, JUnit 4, and `org.json` for unit tests only (Android's own
+copy is stubbed in JVM tests). Talks to the bracelet over BLE
 ([`PROTOCOL.md`](../PROTOCOL.md)) and to the Pi relay over HTTP ([`relay/`](../relay/README.md)).
 
 ## Usage notes

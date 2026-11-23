@@ -18,6 +18,7 @@ the relay).
 | [`caregiver/`](caregiver/README.md) | Caregiver mode: push, live stream, full-screen alarm, acknowledgements |
 | [`ui/`](ui/README.md) | `MainActivity`, `AppViewModel` and all Compose screens |
 | `alert/AlertDispatcher.kt` | Notification channels (alarm, info, connection) and every notification: wearer-phone alerts, caregiver alarms (insistent, full-screen, Acknowledge action), offline notices. Also the event message wording |
+| [`adherence/`](adherence/README.md) | Android-free medication rules (PRD section 7): treatment day and phase, daily dose status, vulnerable days, special-reminder choice, escalation; reads `assets/aturan_program.json` |
 | `alert/AlertRules.kt` | Android-free rules: what a caregiver's phone does per event type (`CaregiverAlert`), whether the wearer's phone notifies, when to warn the bracelet is out of range |
 | `service/BraceletService.kt` | Foreground service (`connectedDevice`) that keeps the process and BLE link alive with a status notification; `BootReceiver` reconnects after boot or an app update |
 
