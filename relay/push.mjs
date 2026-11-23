@@ -10,7 +10,7 @@ import { readFileSync, existsSync } from 'node:fs';
 const KEY_PATH = process.env.FIREBASE_KEY ?? new URL('./firebase-service-account.json', import.meta.url).pathname;
 
 /** Which stream messages are worth waking a phone for; the rest only update an open dashboard. */
-const PUSH_TYPES = new Set(['FALL', 'SOS', 'TEST', 'LOW_BATTERY', 'OFF']);
+const PUSH_TYPES = new Set(['FALL', 'SOS', 'TEST', 'LOW_BATTERY', 'OFF', 'ESKALASI']);
 
 /** Tokens FCM says will never work again; anything else (network, quota) is worth retrying later. */
 const DEAD_TOKEN = new Set([

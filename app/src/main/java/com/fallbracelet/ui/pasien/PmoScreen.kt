@@ -38,7 +38,8 @@ import java.time.ZoneId
  * relay invite and caregiver list from the bracelet app (AppViewModel → WearerRelay).
  */
 @Composable
-fun PmoScreen(app: AppViewModel) {
+fun PmoScreen(app: AppViewModel, vm: PasienViewModel) {
+    val keadaan by vm.keadaan.collectAsState()
     val settings by app.settings.collectAsState()
     val invite by app.invite.collectAsState()
     val daftar by app.caregivers.collectAsState()
@@ -82,6 +83,20 @@ fun PmoScreen(app: AppViewModel) {
                 pesan?.let {
                     Spacer(Modifier.height(8.dp))
                     Text(it, color = WarnaPasien.Buruk)
+                }
+            }
+            // The latest ESKALASI and whether the PMO saw it (PRD scenario 5: "Dilihat oleh …")
+            KartuPasien {
+                LabelBagian(stringResource(R.string.pmo_kabar_terakhir))
+                val terakhir = keadaan?.eskalasi?.lastOrNull { it.kirim }
+                if (terakhir == null) {
+                    Text(
+                        stringResource(R.string.pmo_kabar_isi, vm.aturan.aturan.eskalasi.minTerlewatBerturut),
+                        color = WarnaPasien.Redup, style = MaterialTheme.typography.bodySmall,
+                    )
+                } else {
+                    Text(stringResource(R.string.riwayat_hari_ke, terakhir.hariKe, Format.tanggalPendek(java.time.LocalDate.parse(terakhir.tanggal))))
+                    Text(teksKabar(terakhir), color = WarnaPasien.Redup)
                 }
             }
             Text(stringResource(R.string.pmo_relay_di_pengaturan), color = WarnaPasien.Redup, style = MaterialTheme.typography.bodySmall)

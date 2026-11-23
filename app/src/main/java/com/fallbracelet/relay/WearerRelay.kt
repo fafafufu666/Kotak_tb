@@ -11,6 +11,8 @@ data class LinkedCaregiver(val id: Long, val name: String, val linkedAt: Long)
 data class Invite(val code: String, val expiresAt: Long)
 data class Ack(val deviceAddress: String, val seq: Long, val by: String, val at: Long)
 data class HeartbeatReply(val acks: List<Ack>, val caregivers: Int)
+/** An ESKALASI on the relay and who saw it ("Tandai dilihat"); [by] is null while unseen. */
+data class StatusEskalasi(val deviceAddress: String, val seq: Long, val by: String?, val at: Long?)
 
 /** The wearer phone's side of the Pi relay: registration, event upload, heartbeats, invites. */
 class WearerRelay(
@@ -87,5 +89,22 @@ class WearerRelay(
 
     suspend fun removeCaregiver(id: Long) {
         client().delete("/v1/caregivers/$id")
+    }
+
+    /** Uploads one ESKALASI (an event with `detail` and the re-send timing); returns its relay id. */
+    suspend fun kirimEskalasi(event: JSONObject): Long = client().post("/v1/events", event).getLong("id")
+
+    /** Uploads the daily dose summary; the reply says which ESKALASI the PMO has seen. */
+    suspend fun kirimStatusHarian(ringkasan: JSONObject): List<StatusEskalasi> {
+        val a = client().post("/v1/status-harian", ringkasan).optJSONArray("eskalasi") ?: return emptyList()
+        return List(a.length()) { i ->
+            val e = a.getJSONObject(i)
+            StatusEskalasi(
+                deviceAddress = e.getString("deviceAddress"),
+                seq = e.getLong("seq"),
+                by = if (e.isNull("ackedBy")) null else e.getString("ackedBy"),
+                at = if (e.isNull("ackedAt")) null else e.getLong("ackedAt"),
+            )
+        }
     }
 }

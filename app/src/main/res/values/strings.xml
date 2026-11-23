@@ -96,6 +96,11 @@
     <string name="riwayat_sumber_manual">konfirmasi manual, %1$s</string>
     <string name="riwayat_di_luar">Dibuka di luar jadwal</string>
     <string name="riwayat_kosong">Belum ada riwayat.</string>
+    <string name="kabar_menunggu">Kabar ke PMO: menunggu terkirim ke relay</string>
+    <string name="kabar_terkirim">Kabar ke PMO: terkirim %1$s, belum dilihat</string>
+    <string name="kabar_dilihat">Kabar ke PMO: dilihat oleh %1$s, %2$s</string>
+    <string name="pmo_kabar_terakhir">Kabar terakhir ke PMO</string>
+    <string name="pmo_kabar_isi">Dikirim bila %1$d dosis atau lebih terlewat berturut-turut.</string>
 
     <!-- P1 Persetujuan (isi teks dari assets/persetujuan.md, ditulis Abyan) -->
     <string name="setuju_judul">Persetujuan</string>

@@ -1,124 +1,131 @@
 <!doctype html>
-<html lang="en">
+<html lang="id">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0d1117">
-<title>FallBracelet Caregiver</title>
-<!-- Caregiver mode in a browser, served by the relay. Same API as the app: link with an invite
-     code, keep the live stream open, ring on FALL/SOS, Acknowledge. A browser can't wake a locked
-     phone, so the page has to stay open: it rings, vibrates and notifies while it is. -->
+<meta name="theme-color" content="#00796b">
+<title>Pendamping</title>
+<!-- PMO side in a browser, served by the relay (PRD 6.2 M1-M3). Link with the patient's 6-digit
+     invite code, keep the live stream open, show the 7-day dose row and each ESKALASI, and
+     "Tandai dilihat" (the relay ack; the patient then sees "Dilihat oleh ..."). A browser can't wake
+     a locked phone, so the page has to stay open. Texts stay neutral: no diagnosis, no medicine. -->
 <style>
   :root {
-    --bg: #0d1117; --card: #161b22; --text: #e6edf3; --muted: #8d96a0; --border: #30363d;
-    --accent: #4f8cff; --ok: #3fb950; --ok-bg: #12261e; --bad: #f85149; --bad-bg: #2d1416;
+    --bg: #f4f8f7; --card: #ffffff; --text: #17201f; --muted: #5d6b69; --border: #d5e2df;
+    --teal: #00796b; --teal-bg: #e0f2ef; --ok: #1b7f4b; --ok-bg: #e3f4ea; --bad: #c62828; --bad-bg: #fdecea;
+    --warn: #a15c00; --warn-bg: #fff3e0; --demo: #6a1b9a; --demo-bg: #f3e5f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1716; --card: #172221; --text: #e3eeec; --muted: #94a6a3; --border: #2a3a38;
+      --teal: #4db6ac; --teal-bg: #12302c; --ok: #66bb6a; --ok-bg: #15301f; --bad: #ef5350; --bad-bg: #3a1615;
+      --warn: #ffb74d; --warn-bg: #3a2a10; --demo: #ce93d8; --demo-bg: #2e1a33;
+    }
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--text); }
-  body { font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding: 0 16px 32px;
+  body { font: 17px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding: 0 16px 32px;
          max-width: 640px; margin: 0 auto; }
   h1 { font-size: 28px; margin: 24px 0 2px; }
-  .sub { color: var(--muted); margin: 0 0 16px; font-size: 14px; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
+  .sub { color: var(--muted); margin: 0 0 16px; font-size: 15px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
   .label { text-transform: uppercase; letter-spacing: .06em; font-size: 12px; color: var(--muted); margin: 0 0 6px; }
-  .row { display: flex; align-items: center; gap: 10px; }
+  .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .grow { flex: 1; min-width: 0; }
   .muted { color: var(--muted); }
-  .small { font-size: 13px; }
+  .small { font-size: 14px; }
   .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; word-break: break-all; }
   .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap;
           color: var(--muted); background: var(--border); }
   .pill.ok { color: var(--ok); background: var(--ok-bg); }
   .pill.bad { color: var(--bad); background: var(--bad-bg); }
-  label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+  .pill.demo { color: var(--demo); background: var(--demo-bg); }
+  label { display: block; font-size: 14px; color: var(--muted); margin: 12px 0 4px; }
   input { width: 100%; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border);
           border-radius: 10px; padding: 12px; }
-  input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  input:focus { outline: 2px solid var(--teal); border-color: transparent; }
   #code { font-size: 24px; letter-spacing: .3em; text-align: center; font-family: ui-monospace, Menlo, monospace; }
-  button { font: inherit; font-weight: 600; border-radius: 10px; padding: 12px 16px; cursor: pointer; width: 100%;
+  button { font: inherit; font-weight: 600; border-radius: 12px; padding: 12px 16px; cursor: pointer; width: 100%;
            border: 1px solid var(--border); background: transparent; color: var(--text); margin-top: 8px; }
-  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary { background: var(--teal); border-color: var(--teal); color: #fff; }
   button:disabled { opacity: .45; cursor: default; }
-  button.inline { width: auto; padding: 6px 14px; margin-top: 6px; }
-  .msg { margin-top: 8px; font-size: 14px; }
+  .msg { margin-top: 8px; font-size: 15px; }
   .msg.bad { color: var(--bad); } .msg.ok { color: var(--ok); }
-  .wearer h2 { font-size: 22px; margin: 0; }
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
-  .stat { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; }
-  .stat b { display: block; font-size: 18px; }
-  .stat span { font-size: 12px; color: var(--muted); }
-  .battery { height: 6px; background: var(--border); border-radius: 3px; margin-top: 6px; overflow: hidden; }
-  .battery i { display: block; height: 100%; background: var(--ok); }
+  .pasien h2 { font-size: 24px; margin: 0; }
+  .alert { background: var(--bad-bg); border: 1px solid var(--bad); border-radius: 14px; padding: 14px; margin: 12px 0; }
+  .alert b { color: var(--bad); font-size: 19px; display: block; }
+  .alert button { background: var(--bad); border-color: var(--bad); color: #fff; }
+  .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin: 6px 0 4px; text-align: center; }
+  .week .d { font-size: 13px; color: var(--muted); }
+  .week .c { width: 38px; height: 38px; margin: 4px auto; border-radius: 50%; display: grid; place-items: center;
+             font-weight: 700; font-size: 18px; background: var(--bg); color: var(--muted); }
+  .week .c.ok { background: var(--ok-bg); color: var(--ok); }
+  .week .c.bad { background: var(--bad-bg); color: var(--bad); }
+  .week .c.warn { background: var(--warn-bg); color: var(--warn); }
   .ev { padding: 10px 0; border-top: 1px solid var(--border); }
   .ev:first-of-type { border-top: 0; }
-  .tabs { display: flex; gap: 6px; margin: 4px 0 8px; }
-  .tabs button { width: auto; flex: 1; margin: 0; padding: 6px 0; font-size: 14px; }
-  .tabs button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .pager { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-  .pager button { width: 44px; margin: 0; padding: 6px 0; }
-  .pager b { flex: 1; text-align: center; font-size: 15px; }
-  .day { font-size: 13px; font-weight: 600; color: var(--muted); margin: 14px 0 0; }
-  .ev .seen { color: var(--ok); font-size: 13px; }
-  .banner { background: var(--bad-bg); color: var(--bad); border-color: var(--bad); }
-  .banner button { border-color: var(--bad); color: var(--bad); }
+  .seen { color: var(--ok); font-size: 14px; }
+  .banner { background: var(--warn-bg); color: var(--warn); border-color: var(--warn); }
+  .banner button { border-color: var(--warn); color: var(--warn); }
 
-  /* Full-screen alarm, the browser stand-in for the app's AlarmActivity. */
-  #alarm { position: fixed; inset: 0; background: #b3121b; color: #fff; display: none; flex-direction: column;
-           justify-content: center; align-items: center; text-align: center; padding: 24px; z-index: 10;
-           animation: flash 1s steps(2) infinite; }
+  /* The page's stand-in for a full-screen alert: calm, but hard to miss. */
+  #alarm { position: fixed; inset: 0; background: rgba(0, 0, 0, .55); display: none; align-items: center;
+           justify-content: center; padding: 16px; z-index: 10; }
   #alarm.on { display: flex; }
-  #alarm h2 { font-size: 44px; margin: 0; }
-  #alarm p { font-size: 20px; margin: 8px 0; max-width: 520px; }
-  #alarm button { background: #fff; color: #b3121b; border: 0; font-size: 22px; padding: 18px; max-width: 420px; margin-top: 24px; }
-  #alarm .more { color: #ffd7d9; font-size: 15px; }
-  @keyframes flash { 50% { background: #7a0c12; } }
-  @media (prefers-reduced-motion: reduce) { #alarm { animation: none; } }
+  #alarm .box { background: var(--card); color: var(--text); border-radius: 20px; padding: 24px; max-width: 460px; width: 100%;
+                border-top: 8px solid var(--bad); text-align: center; }
+  #alarm h2 { font-size: 26px; margin: 0 0 4px; }
+  #alarm .big { font-size: 22px; font-weight: 700; color: var(--bad); margin: 12px 0 4px; }
+  #alarm p { margin: 6px 0; }
+  #alarm button.primary { font-size: 20px; padding: 16px; margin-top: 18px; }
 </style>
 </head>
 <body>
-<h1>Caregiver</h1>
+<h1>Pendamping</h1>
 <p class="sub" id="who"></p>
 
 <div id="sound" class="card banner" hidden>
-  <div>Tap once so this page can ring when an alarm comes in. Keep the page open, with the screen on.</div>
-  <button id="soundBtn">Turn on alarm sound</button>
+  <div>Ketuk sekali agar halaman ini bisa berbunyi saat ada kabar. Biarkan halaman tetap terbuka dan layar menyala.</div>
+  <button id="soundBtn">Nyalakan suara</button>
+</div>
+
+<div id="pasien"></div>
+
+<div id="link" class="card" hidden>
+  <p class="label">Hubungkan dengan pasien</p>
+  <div class="muted">Di HP pasien: tab PMO → Buat kode undangan. Ketik 6 angkanya di sini.</div>
+  <form id="linkForm" autocomplete="off">
+    <label for="code">Kode undangan</label>
+    <input id="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000">
+    <label for="name">Nama kamu (tampil sebagai "Dilihat oleh …")</label>
+    <input id="name" maxlength="40">
+    <button class="primary" id="linkBtn" disabled>Hubungkan</button>
+    <button type="button" id="cancelLink" hidden>Batal</button>
+  </form>
+  <div class="msg" id="linkMsg"></div>
 </div>
 
 <div id="status" class="card" hidden>
   <div class="row">
     <div class="grow"><p class="label">Relay</p><div class="mono" id="relay"></div></div>
-    <span class="pill" id="live">Off</span>
+    <span class="pill" id="live">Mati</span>
   </div>
   <div class="msg bad" id="streamErr"></div>
   <div class="muted small" id="caps"></div>
 </div>
 
-<div id="wearers"></div>
+<button id="another" hidden>Dampingi pasien lain</button>
+<button id="signout" hidden>Keluar dari browser ini</button>
 
-<div id="link" class="card" hidden>
-  <p class="label">Link to a wearer</p>
-  <div class="muted">On the wearer's phone: Settings → Invite a caregiver. Type the 6-digit code here.</div>
-  <form id="linkForm" autocomplete="off">
-    <label for="code">Invite code</label>
-    <input id="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000">
-    <label for="name">Your name (shown as "Seen by …")</label>
-    <input id="name" maxlength="40">
-    <button class="primary" id="linkBtn" disabled>Link</button>
-    <button type="button" id="cancelLink" hidden>Cancel</button>
-  </form>
-  <div class="msg" id="linkMsg"></div>
-</div>
-
-<button id="another" hidden>Link another wearer</button>
-<button id="signout" hidden>Sign out of this browser</button>
-
-<div id="alarm" role="alertdialog" aria-live="assertive">
-  <h2 id="alarmTitle">FALL</h2>
-  <p id="alarmWho"></p>
-  <p id="alarmMsg"></p>
-  <p class="more" id="alarmMore"></p>
-  <p class="more" id="alarmMute" hidden>Sound is off: tap anywhere outside the button to turn it on.</p>
-  <button id="ackBtn">Acknowledge</button>
+<div id="alarm" role="alertdialog" aria-live="assertive" aria-labelledby="alarmTitle">
+  <div class="box">
+    <h2 id="alarmTitle"></h2>
+    <p id="alarmMsg"></p>
+    <p class="big" id="alarmMissed"></p>
+    <p class="muted" id="alarmMore"></p>
+    <button class="primary" id="ackBtn">Tandai dilihat</button>
+    <button id="laterBtn">Nanti</button>
+  </div>
 </div>
 
 <script>
@@ -127,17 +134,21 @@ const store = {
   get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
   set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} },
 };
-const LABELS = { FALL: 'Fall', SOS: 'SOS', LOW_BATTERY: 'Low battery', OFF: 'Switched off', CHECKIN: 'Daily check-in',
-                 CANCELLED: 'Alarm cancelled', ON: 'Switched on', TEST: 'Test' };
-const ALARMS = new Set(['FALL', 'SOS']);
-const RING_WINDOW_MS = 30 * 60_000; // ring for unacknowledged alarms this recent, e.g. after reopening the page
+const RING_WINDOW_MS = 12 * 3600_000; // show unseen ESKALASI this recent, e.g. after reopening the page
+const STATUS = {
+  DIMINUM_KOTAK: ['✓', 'ok', 'Diminum (kotak)'], DIKONFIRMASI_MANUAL: ['✓', 'ok', 'Dikonfirmasi pasien'],
+  BEPERGIAN: ['✓', 'ok', 'Bepergian, dikonfirmasi'], TERLEWAT: ['✗', 'bad', 'Terlewat'],
+  TERLAMBAT: ['!', 'warn', 'Terlambat'], BELUM: ['•', '', 'Belum'], TANPA_DATA: ['–', '', 'Belum dipantau'],
+};
 
 let token = store.get('cg.token');
 let me = store.get('cg.name') || '';
-let wearers = new Map();  // id -> wearer from /v1/dashboard, kept current by the stream
+let pasien = new Map();   // id -> wearer from /v1/dashboard, kept current by the stream
 let lastEventId = Number(store.get('cg.lastEventId')) || null;
-let ringing = [];         // unacknowledged alarm events, oldest first
+let ringing = [];         // unseen ESKALASI, oldest first
+let later = new Set();    // ESKALASI put aside with "Nanti" (until a re-send arrives)
 let streamCtrl = null;
+let lastData = 0;         // when the stream last delivered anything (keepalives included)
 
 // --- API ---------------------------------------------------------------------------------------
 
@@ -153,9 +164,13 @@ async function api(method, path, body, auth = token) {
 }
 
 async function loadDashboard() {
-  const d = await api('GET', '/v1/dashboard?limit=1000'); // enough history to page back through weeks
-  wearers = new Map(d.wearers.map((w) => [w.id, w]));
+  const d = await api('GET', '/v1/dashboard?limit=200');
+  pasien = new Map(d.wearers.map((w) => [w.id, w]));
+  // Keep only what the relay still has unseen (a demo that ended, or one seen on another device, is gone).
+  const open = new Set(d.wearers.flatMap((w) => w.events.filter((e) => e.type === 'ESKALASI' && !e.ackedAt).map((e) => e.id)));
+  ringing = ringing.filter((e) => open.has(e.id) && modeNow(e));
   for (const w of d.wearers) for (const e of w.events) maybeRing({ ...e, wearerName: w.name });
+  updateAlarm();
   render();
 }
 
@@ -163,7 +178,7 @@ async function loadDashboard() {
 
 function setLive(state, err = '') {
   const el = $('live');
-  el.textContent = { live: 'Live', connecting: 'Reconnecting…', off: 'Off' }[state];
+  el.textContent = { live: 'Tersambung', connecting: 'Menyambung…', off: 'Terputus' }[state];
   el.className = 'pill ' + ({ live: 'ok', off: 'bad' }[state] || '');
   $('streamErr').textContent = err;
 }
@@ -177,15 +192,17 @@ async function stream() {
       const headers = { Authorization: `Bearer ${token}` };
       if (lastEventId) headers['Last-Event-ID'] = String(lastEventId);
       const r = await fetch('/v1/stream', { headers, signal: ctrl.signal, cache: 'no-store' });
-      if (r.status === 401) { signOut('This browser was unlinked. Link again with a new code.'); return; }
+      if (r.status === 401) { signOut('Browser ini sudah dilepas oleh pasien. Hubungkan lagi dengan kode baru.'); return; }
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       setLive('live');
+      lastData = Date.now();
       await loadDashboard();
       const reader = r.body.pipeThrough(new TextDecoderStream()).getReader();
       let buf = '';
       for (;;) {
         const { value, done } = await reader.read();
         if (done) break;
+        lastData = Date.now();
         buf += value.replace(/\r\n/g, '\n');
         let i;
         while ((i = buf.indexOf('\n\n')) >= 0) {
@@ -197,112 +214,124 @@ async function stream() {
           if (type && data) onMessage(type, JSON.parse(data));
         }
       }
-      throw new Error('connection closed');
+      throw new Error('sambungan tertutup');
     } catch (err) {
       if (ctrl.signal.aborted) return;
-      setLive('off', `Can't reach the relay (${err.message}). Retrying…`);
+      setLive('off', 'Relay tidak bisa dihubungi. Mencoba lagi…');
       await new Promise((ok) => setTimeout(ok, 5000));
     }
   }
 }
 
 function onMessage(type, d) {
-  const w = wearers.get(d.wearerId);
+  const w = pasien.get(d.wearerId);
   switch (type) {
     case 'event': {
       if (!w) { loadDashboard().catch(() => {}); break; }
       const i = w.events.findIndex((e) => e.id === d.id);
       if (i >= 0) w.events[i] = { ...w.events[i], ...d }; else w.events.unshift(d);
-      w.events.sort((a, b) => b.occurredAt - a.occurredAt || b.id - a.id);
-      if (d.batteryPct != null) w.status = { ...(w.status || {}), batteryPct: d.batteryPct };
+      w.events.sort((a, b) => b.receivedAt - a.receivedAt || b.id - a.id);
+      if (d.escalated) later.delete(d.id);
       maybeRing({ ...d, wearerName: d.wearerName || w.name });
       break;
     }
-    case 'status': if (w) { w.status = d.status; w.lastHeartbeat = d.at; w.offline = false; } break;
+    case 'days':
+      if (w) {
+        const switched = !!w.ringkasan?.demo !== !!d.ringkasan.demo;
+        w.ringkasan = d.ringkasan; w.days = d.days;
+        if (switched) {
+          // Demo ended (or started): the other mode's ESKALASI are gone from the relay.
+          w.events = w.events.filter((e) => e.type !== 'ESKALASI' || !!e.demo === !!d.ringkasan.demo);
+          ringing = ringing.filter((e) => modeNow(e));
+          updateAlarm();
+        }
+      }
+      break;
+    case 'status': if (w) { w.lastHeartbeat = d.at; w.offline = false; } break;
     case 'online': if (w) w.offline = false; break;
     case 'offline':
-      if (w) { w.offline = true; notify(`${w.name}'s phone is offline`, 'No word from the wearer\'s phone for 15 minutes.', 'offline-' + w.id); }
+      if (w) { w.offline = true; notify(w.name, 'HP pasien tidak terhubung sejak 15 menit lalu.', 'offline-' + w.id); }
       break;
     case 'ack':
       if (w) { const e = w.events.find((x) => x.id === d.eventId); if (e) Object.assign(e, { ackedBy: d.by, ackedAt: d.at }); }
       ringing = ringing.filter((e) => e.id !== d.eventId);
       updateAlarm();
       break;
-    case 'unlinked': wearers.delete(d.wearerId); ringing = ringing.filter((e) => e.wearerId !== d.wearerId); updateAlarm(); break;
+    case 'unlinked': pasien.delete(d.wearerId); ringing = ringing.filter((e) => e.wearerId !== d.wearerId); updateAlarm(); break;
   }
   render();
 }
 
-// --- Alarm: full-screen, siren, vibration and a notification while the page is open --------------
+// --- Alert: overlay, chime, vibration and a notification while the page is open -----------------
+
+/** Whether [e] belongs to the mode (demo or real) the patient's phone is in now. */
+function modeNow(e) {
+  const r = pasien.get(e.wearerId)?.ringkasan;
+  return !r || !!e.demo === !!r.demo;
+}
 
 function maybeRing(e) {
-  if (!ALARMS.has(e.type) || e.ackedAt || Date.now() - e.occurredAt > RING_WINDOW_MS) return;
+  if (e.type !== 'ESKALASI' || e.ackedAt || !modeNow(e) || Date.now() - (e.receivedAt ?? Date.now()) > RING_WINDOW_MS) return;
   const known = ringing.find((x) => x.id === e.id);
-  if (known) { if (e.escalated) Object.assign(known, e); return; }
+  if (known) {
+    Object.assign(known, e);
+    if (e.escalated) { chime(); notify(e.wearerName, e.message || 'Ada kabar dari pasien.', 'eskalasi-' + e.id); updateAlarm(); }
+    return;
+  }
   ringing.push(e);
-  notify(`${LABELS[e.type]} — ${e.wearerName}`, e.message || 'Open the page and acknowledge.', 'event-' + e.id);
+  chime();
+  notify(e.wearerName, e.message || 'Ada kabar dari pasien.', 'eskalasi-' + e.id);
   updateAlarm();
 }
 
 function updateAlarm() {
-  const e = ringing[0];
+  const e = ringing.find((x) => !later.has(x.id));
   $('alarm').classList.toggle('on', !!e);
-  if (!e) { siren.stop(); document.title = 'FallBracelet Caregiver'; return; }
-  $('alarmTitle').textContent = e.type === 'SOS' ? 'SOS' : 'FALL';
-  $('alarmWho').textContent = `${e.wearerName} · ${new Date(e.occurredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  document.title = ringing.length ? `(${ringing.length}) Pendamping` : 'Pendamping';
+  if (!e) return;
+  const d = e.detail || {};
+  $('alarmTitle').textContent = e.wearerName + (e.demo ? ' (demo)' : '');
   $('alarmMsg').textContent = e.message || '';
-  $('alarmMore').textContent = [
-    e.impactG ? `Impact ${Number(e.impactG).toFixed(1)} g` : '',
-    e.batteryPct != null ? `bracelet battery ${e.batteryPct}%` : '',
-    ringing.length > 1 ? `${ringing.length - 1} more waiting` : '',
-  ].filter(Boolean).join(' · ');
-  $('alarmMute').hidden = siren.ready;
+  $('alarmMissed').textContent = d.terlewatBerturut ? `${d.terlewatBerturut} dosis terlewat berturut-turut` : 'Dosis terlewat';
+  $('alarmMore').textContent = [terakhirDibuka(d.terakhirDibuka), d.hariRawan ? 'Hari rawan' : '',
+    ringing.length > 1 ? `${ringing.length - 1} kabar lain menunggu` : ''].filter(Boolean).join(' · ');
   $('ackBtn').disabled = false;
-  $('ackBtn').textContent = 'Acknowledge';
-  document.title = `⚠ ${e.type} — ${e.wearerName}`;
-  siren.start();
+  $('ackBtn').textContent = 'Tandai dilihat';
 }
 
 async function acknowledge(id, btn) {
-  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Mengirim…'; }
   try {
     await api('POST', `/v1/events/${id}/ack`);
     ringing = ringing.filter((e) => e.id !== id);
-    for (const w of wearers.values()) {
+    for (const w of pasien.values()) {
       const e = w.events.find((x) => x.id === id);
-      if (e && !e.ackedAt) Object.assign(e, { ackedBy: me || 'you', ackedAt: Date.now() });
+      if (e && !e.ackedAt) Object.assign(e, { ackedBy: me || 'kamu', ackedAt: Date.now() });
     }
     updateAlarm();
     render();
   } catch (err) {
-    if (btn) { btn.disabled = false; btn.textContent = `Retry acknowledge (${err.message})`; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Gagal mengirim, coba lagi'; }
   }
 }
 
-const siren = {
-  ctx: null, timer: null,
-  unlock() {
-    this.ctx ??= new (window.AudioContext || window.webkitAudioContext)();
-    return this.ctx.resume();
-  },
+const audio = {
+  ctx: null,
+  unlock() { this.ctx ??= new (window.AudioContext || window.webkitAudioContext)(); return this.ctx.resume(); },
   get ready() { return this.ctx?.state === 'running'; },
-  start() {
-    if (this.timer) return;
-    const beep = () => {
-      if (navigator.vibrate) navigator.vibrate([600, 200, 600]);
-      if (!this.ready) return;
-      const t = this.ctx.currentTime, o = this.ctx.createOscillator(), g = this.ctx.createGain();
-      o.type = 'square';
-      o.frequency.setValueAtTime(880, t); o.frequency.setValueAtTime(660, t + 0.4);
-      g.gain.setValueAtTime(0.25, t); g.gain.setValueAtTime(0, t + 0.8);
-      o.connect(g).connect(this.ctx.destination);
-      o.start(t); o.stop(t + 0.8);
-    };
-    beep();
-    this.timer = setInterval(beep, 1400);
-  },
-  stop() { clearInterval(this.timer); this.timer = null; navigator.vibrate?.(0); },
 };
+/** Three soft notes, once per new or re-sent ESKALASI. */
+function chime() {
+  if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
+  if (!audio.ready) return;
+  const t0 = audio.ctx.currentTime;
+  [660, 880, 660].forEach((f, i) => {
+    const t = t0 + i * 0.35, o = audio.ctx.createOscillator(), g = audio.ctx.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(f, t);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.3, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+    o.connect(g).connect(audio.ctx.destination); o.start(t); o.stop(t + 0.32);
+  });
+}
 
 function notify(title, body, tag) {
   if (!('Notification' in window) || Notification.permission !== 'granted' || document.visibilityState === 'visible') return;
@@ -313,109 +342,107 @@ let wakeLock = null;
 async function keepAwake() {
   try { if ('wakeLock' in navigator && !wakeLock) wakeLock = await navigator.wakeLock.request('screen'); wakeLock?.addEventListener('release', () => (wakeLock = null)); } catch {}
 }
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && token) keepAwake(); });
+// A browser may freeze a hidden tab's connection without closing it, so the page could look
+// connected but hear nothing. Back on screen, or with no keepalive (every 25 s) for 60 s,
+// reconnect; the reconnect reloads the dashboard and replays what was missed (Last-Event-ID).
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !token) return;
+  keepAwake();
+  stream();
+});
+setInterval(() => { if (token && lastData && Date.now() - lastData > 60_000) stream(); }, 15_000);
 
 async function enableSound() {
-  await siren.unlock().catch(() => {});
+  await audio.unlock().catch(() => {});
   if ('Notification' in window && Notification.permission === 'default') await Notification.requestPermission().catch(() => {});
   keepAwake();
   render();
-  if (ringing.length) { siren.stop(); updateAlarm(); }
 }
 
 // --- Rendering ---------------------------------------------------------------------------------
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-function ago(t) {
+const jam = (t) => new Date(t).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+const hariJam = (t) => new Date(t).toLocaleString('id-ID', { weekday: 'long', hour: '2-digit', minute: '2-digit' });
+const tgl = (s) => new Date(`${s}T12:00:00`);
+function lalu(t) {
   const s = Math.round((Date.now() - t) / 1000);
-  if (s < 60) return 'just now';
-  if (s < 3600) return `${Math.round(s / 60)} min ago`;
-  if (s < 86400) return `${Math.round(s / 3600)} h ago`;
-  return `${Math.round(s / 86400)} d ago`;
+  if (s < 60) return 'baru saja';
+  if (s < 3600) return `${Math.round(s / 60)} menit lalu`;
+  if (s < 86400) return `${Math.round(s / 3600)} jam lalu`;
+  return `${Math.round(s / 86400)} hari lalu`;
 }
-const when = (t) => new Date(t).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+function terakhirDibuka(t) { return t ? `Terakhir dibuka: ${hariJam(t)}` : 'Kotak belum pernah dibuka'; }
+function addDays(s, n) { const d = new Date(`${s}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
 
-function wearerHtml(w) {
-  const s = w.status || {};
-  const lastBattery = s.batteryPct ?? w.events.find((e) => e.batteryPct != null)?.batteryPct;
-  const bracelet = s.braceletConnected === true ? 'Connected' : s.braceletConnected === false ? 'Not connected' : 'Unknown';
-  const checkin = w.events.find((e) => e.type === 'CHECKIN');
-  const v = viewOf(w.id);
-  const [from, to, title] = range(v);
-  const shown = w.events.filter((e) => e.occurredAt >= from && e.occurredAt < to);
-  let lastDay = '';
-  const events = shown.map((e) => {
-    const day = new Date(e.occurredAt).toDateString();
-    const heading = v.mode !== 'day' && day !== lastDay ? `<p class="day">${dayName(e.occurredAt)}</p>` : '';
-    lastDay = day;
-    const cls = ALARMS.has(e.type) ? 'bad' : (e.type === 'CHECKIN' || e.type === 'CANCELLED') ? 'ok' : '';
-    const tail = e.ackedAt
-      ? `<div class="seen">Seen by ${esc(e.ackedBy)} ${ago(e.ackedAt)}</div>`
-      : (ALARMS.has(e.type) || e.type === 'TEST') ? `<button class="inline" data-ack="${e.id}">Acknowledge</button>` : '';
-    return `${heading}<div class="ev"><div class="row"><span class="pill ${cls}">${esc(LABELS[e.type] || e.type)}</span>
-      <span class="muted small">${v.mode === 'day' ? time(e.occurredAt) : when(e.occurredAt)}</span></div>
-      ${e.message ? `<div>${esc(e.message)}</div>` : ''}${tail}</div>`;
-  }).join('');
-  return `<div class="card wearer">
-    <div class="row"><h2 class="grow">${esc(w.name)}</h2>
-      ${w.offline ? '<span class="pill bad">Phone offline</span>' : w.lastHeartbeat ? '<span class="pill ok">Online</span>' : '<span class="pill">No heartbeat yet</span>'}</div>
-    <div class="stats">
-      <div class="stat"><span>Bracelet</span><b>${bracelet}</b></div>
-      <div class="stat"><span>State</span><b>${esc((s.state || '—').toLowerCase().replace(/_/g, ' '))}</b></div>
-      <div class="stat"><span>Battery</span><b>${lastBattery != null ? lastBattery + '%' : '—'}</b>
-        ${lastBattery != null ? `<div class="battery"><i style="width:${Math.max(0, Math.min(100, lastBattery))}%;${lastBattery <= 20 ? 'background:var(--bad)' : ''}"></i></div>` : ''}</div>
-    </div>
-    <div class="muted small">${w.lastHeartbeat ? `Last heard ${ago(w.lastHeartbeat)}` : 'Not heard from yet'} · ${checkin ? `last check-in ${ago(checkin.occurredAt)}` : 'no check-in yet'}</div>
-    <p class="label" style="margin-top:14px">History</p>
-    <div class="tabs">${['day', 'week', 'all'].map((m) =>
-      `<button class="${v.mode === m ? 'on' : ''}" data-view="${w.id}:${m}">${{ day: 'Day', week: 'Week', all: 'All' }[m]}</button>`).join('')}</div>
-    ${v.mode !== 'all' ? `<div class="pager"><button data-step="${w.id}:-1" aria-label="Earlier">‹</button>
-      <b>${title}</b><button data-step="${w.id}:1" aria-label="Later" ${v.offset >= 0 ? 'disabled' : ''}>›</button></div>` : ''}
-    <div class="muted small">${shown.length ? `${shown.length} event${shown.length > 1 ? 's' : ''}` : ''}${shown.filter((e) => ALARMS.has(e.type)).length ? `, ${shown.filter((e) => ALARMS.has(e.type)).length} alarm(s)` : ''}</div>
-    ${events || `<div class="muted">${w.events.length ? 'Nothing in this period.' : 'Nothing yet.'}</div>`}
+function mingguHtml(w) {
+  const r = w.ringkasan;
+  if (!r?.tanggal) return '<div class="muted small">Belum ada ringkasan dari HP pasien.</div>';
+  const perTanggal = new Map((w.days || []).map((d) => [d.tanggal, d]));
+  const cells = [];
+  for (let i = -6; i <= 0; i++) {
+    const t = addDays(r.tanggal, i), d = perTanggal.get(t);
+    const [sym, cls, label] = d ? STATUS[d.status] || ['?', '', d.status] : ['', '', 'Belum mulai'];
+    cells.push(`<div title="${esc(label)}"><div class="d">${tgl(t).toLocaleDateString('id-ID', { weekday: 'short' })}</div>
+      <div class="c ${cls}">${sym}</div><div class="d">${tgl(t).getDate()}</div></div>`);
+  }
+  return `<div class="week" role="list" aria-label="7 hari terakhir">${cells.join('')}</div>
+    <div class="muted small">✓ diminum · ✗ terlewat · ! terlambat · • belum · – belum dipantau</div>`;
+}
+
+function kabarHtml(e) {
+  const d = e.detail || {};
+  const tanggal = d.tanggal ? tgl(d.tanggal).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' }) : '';
+  const tail = e.ackedAt
+    ? `<div class="seen">Dilihat oleh ${esc(e.ackedBy)}, ${lalu(e.ackedAt)}</div>`
+    : `<button data-ack="${e.id}">Tandai dilihat</button>`;
+  return `<div class="ev"><div class="row"><span class="pill bad">Dosis terlewat</span>
+      <span class="muted small">${esc(tanggal)}${d.hariKe ? ` · hari ke-${d.hariKe}` : ''}</span></div>
+    <div>${d.terlewatBerturut ? `${d.terlewatBerturut} dosis terlewat berturut-turut` : ''}</div>
+    <div class="muted small">${esc(terakhirDibuka(d.terakhirDibuka))} · dikirim ${jam(e.receivedAt)}${e.escalations ? `, diulang ${e.escalations}×` : ''}</div>
+    ${tail}</div>`;
+}
+
+function pasienHtml(w) {
+  const r = w.ringkasan || {};
+  const kabar = w.events.filter((e) => e.type === 'ESKALASI' && !!e.demo === !!r.demo);
+  const terbuka = kabar.filter((e) => !e.ackedAt);
+  const atas = terbuka[0];
+  const ad = atas?.detail || {};
+  return `<div class="card pasien">
+    <div class="row"><div class="grow"><p class="label">Pendamping untuk</p><h2>${esc(w.name)}</h2></div>
+      ${r.demo ? '<span class="pill demo">DEMO</span>' : ''}
+      ${w.offline ? '<span class="pill bad">HP pasien terputus</span>' : w.lastHeartbeat ? '<span class="pill ok">HP pasien tersambung</span>' : ''}</div>
+    <div class="muted small" style="margin-top:6px">${r.hariKe ? `Hari ${r.hariKe}${r.totalHari ? ` dari ${r.totalHari}` : ''}` : ''}${r.at ? ` · kabar terakhir ${lalu(r.at)}` : ''}</div>
+    ${atas ? `<div class="alert"><b>${ad.terlewatBerturut ? `${ad.terlewatBerturut} dosis terlewat berturut-turut` : 'Dosis terlewat'}</b>
+      <div>${esc(terakhirDibuka(ad.terakhirDibuka))}</div>
+      ${terbuka.length > 1 ? `<div class="small">${terbuka.length - 1} kabar lain belum dilihat</div>` : ''}
+      <button data-ack="${atas.id}">Tandai dilihat</button></div>` : ''}
+    <p class="label" style="margin-top:14px">7 hari terakhir</p>
+    ${mingguHtml(w)}
+    <p class="label" style="margin-top:14px">Kabar</p>
+    ${kabar.length ? kabar.slice(0, 20).map(kabarHtml).join('') : '<div class="muted">Belum ada kabar dosis terlewat.</div>'}
   </div>`;
-}
-
-// History filter per wearer: one day or one week at a time (offset 0 = today / this week), or all.
-const views = (() => { try { return JSON.parse(store.get('cg.views')) || {}; } catch { return {}; } })();
-const viewOf = (id) => (views[id] ??= { mode: 'day', offset: 0 });
-const saveViews = () => store.set('cg.views', JSON.stringify(views));
-const time = (t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-function startOfDay(t, plusDays = 0) { const d = new Date(t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + plusDays); return d.getTime(); }
-function dayName(t) {
-  const d = startOfDay(t), today = startOfDay(Date.now());
-  if (d === today) return 'Today';
-  if (d === startOfDay(Date.now(), -1)) return 'Yesterday';
-  return new Date(t).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'short' });
-}
-/** [from, to, title] for the selected period; weeks run Monday to Sunday. */
-function range(v) {
-  if (v.mode === 'all') return [0, Infinity, 'All'];
-  if (v.mode === 'day') { const from = startOfDay(Date.now(), v.offset); return [from, startOfDay(from, 1), dayName(from)]; }
-  const monday = startOfDay(Date.now(), -((new Date().getDay() + 6) % 7) + 7 * v.offset);
-  const sunday = startOfDay(monday, 6);
-  const fmt = (t) => new Date(t).toLocaleDateString([], { day: 'numeric', month: 'short' });
-  return [monday, startOfDay(monday, 7), v.offset === 0 ? 'This week' : v.offset === -1 ? 'Last week' : `${fmt(monday)} – ${fmt(sunday)}`];
 }
 
 let linking = false;
 function render() {
   const linked = !!token;
-  $('who').textContent = linked && me ? `Signed in as ${me}` : 'Gets the bracelet\'s alarms on this device while the page is open.';
+  $('who').textContent = linked && me ? `Masuk sebagai ${me}` : 'Menerima kabar dosis terlewat dari pasien yang kamu dampingi, selama halaman ini terbuka.';
   $('link').hidden = linked && !linking;
   $('cancelLink').hidden = !linked;
   $('status').hidden = $('another').hidden = $('signout').hidden = !linked;
-  $('sound').hidden = !linked || siren.ready;
+  $('sound').hidden = !linked || audio.ready;
   $('relay').textContent = location.host;
   const caps = [];
-  if (!('Notification' in window) || !window.isSecureContext) caps.push('no notifications on plain http');
-  else if (Notification.permission !== 'granted') caps.push('notifications off');
-  if (!('wakeLock' in navigator)) caps.push('screen may sleep');
-  $('caps').textContent = caps.length ? `In this browser: ${caps.join(', ')}. Keep the page open and the screen on.` : '';
-  if (!linked) { $('wearers').innerHTML = ''; return; }
-  $('wearers').innerHTML = wearers.size
-    ? [...wearers.values()].map(wearerHtml).join('')
-    : '<div class="card muted">Not following anyone yet.</div>';
+  if (!('Notification' in window) || !window.isSecureContext) caps.push('notifikasi tidak tersedia lewat http biasa');
+  else if (Notification.permission !== 'granted') caps.push('notifikasi mati');
+  if (!('wakeLock' in navigator)) caps.push('layar bisa mati sendiri');
+  $('caps').textContent = caps.length ? `Di browser ini: ${caps.join(', ')}. Biarkan halaman terbuka dan layar menyala.` : '';
+  if (!linked) { $('pasien').innerHTML = ''; return; }
+  $('pasien').innerHTML = pasien.size
+    ? [...pasien.values()].map(pasienHtml).join('')
+    : '<div class="card muted">Belum mendampingi siapa pun.</div>';
   if (!$('name').value) $('name').value = me;
 }
 
@@ -429,27 +456,27 @@ $('linkForm').addEventListener('submit', async (ev) => {
   ev.preventDefault();
   const msg = $('linkMsg');
   $('linkBtn').disabled = true;
-  msg.className = 'msg'; msg.textContent = 'Linking…';
-  enableSound(); // the tap counts as the gesture that lets the page ring later
+  msg.className = 'msg'; msg.textContent = 'Menghubungkan…';
+  enableSound(); // the tap counts as the gesture that lets the page chime later
   try {
     const name = $('name').value.trim();
     const r = await api('POST', '/v1/link', { code: $('code').value, name }, token);
     if (r.token) { token = r.token; store.set('cg.token', token); me = name; store.set('cg.name', me); }
-    msg.className = 'msg ok'; msg.textContent = `Linked to ${r.wearer.name}.`;
+    msg.className = 'msg ok'; msg.textContent = `Terhubung dengan ${r.wearer.name}.`;
     $('code').value = '';
     linking = false;
     await loadDashboard();
     if (!streamCtrl || streamCtrl.signal.aborted) stream();
   } catch (err) {
     msg.className = 'msg bad';
-    msg.textContent = err.status === 404 ? 'That code is wrong or has expired. Ask for a new one.' : `Couldn't link: ${err.message}`;
+    msg.textContent = err.status === 404 ? 'Kode salah atau sudah kedaluwarsa. Minta kode baru ke pasien.' : 'Gagal menghubungkan. Coba lagi.';
   }
   checkForm();
 });
 
 function signOut(reason = '') {
   streamCtrl?.abort();
-  token = null; lastEventId = null; wearers = new Map(); ringing = [];
+  token = null; lastEventId = null; pasien = new Map(); ringing = [];
   store.set('cg.token', null); store.set('cg.lastEventId', null);
   updateAlarm();
   $('linkMsg').className = 'msg bad'; $('linkMsg').textContent = reason;
@@ -458,23 +485,18 @@ function signOut(reason = '') {
 
 $('another').addEventListener('click', () => { linking = true; $('linkMsg').textContent = ''; render(); $('code').focus(); });
 $('cancelLink').addEventListener('click', () => { linking = false; render(); });
-$('signout').addEventListener('click', () => { if (confirm('Stop getting alarms on this browser?')) signOut(); });
+$('signout').addEventListener('click', () => { if (confirm('Berhenti menerima kabar di browser ini?')) signOut(); });
 $('soundBtn').addEventListener('click', enableSound);
-$('ackBtn').addEventListener('click', () => ringing[0] && acknowledge(ringing[0].id, $('ackBtn')));
-$('wearers').addEventListener('click', (e) => {
+$('ackBtn').addEventListener('click', () => { const e = ringing.find((x) => !later.has(x.id)); if (e) acknowledge(e.id, $('ackBtn')); });
+$('laterBtn').addEventListener('click', () => { const e = ringing.find((x) => !later.has(x.id)); if (e) later.add(e.id); updateAlarm(); });
+$('pasien').addEventListener('click', (e) => {
   const b = e.target.closest('[data-ack]');
-  if (b) return acknowledge(Number(b.dataset.ack), b);
-  const t = e.target.closest('[data-view]'), s = e.target.closest('[data-step]');
-  if (t) { const [id, mode] = t.dataset.view.split(':'); views[id] = { mode, offset: 0 }; }
-  else if (s) { const [id, step] = s.dataset.step.split(':'); const v = viewOf(id); v.offset = Math.min(0, v.offset + Number(step)); }
-  else return;
-  saveViews();
-  render();
+  if (b) acknowledge(Number(b.dataset.ack), b);
 });
 // Any tap on the page also unlocks audio, so a reload followed by a tap is enough.
-document.addEventListener('pointerdown', () => { if (token && !siren.ready) enableSound(); }, { once: false });
+document.addEventListener('pointerdown', () => { if (token && !audio.ready) enableSound(); });
 
-setInterval(() => { if (token && !ringing.length) render(); }, 30_000); // keep "x min ago" fresh
+setInterval(() => { if (token) render(); }, 30_000); // keep "x menit lalu" fresh
 render();
 if (token) stream();
 </script>

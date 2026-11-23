@@ -1,8 +1,8 @@
 # Status pengembangan
 
 ## 1. Tahap saat ini
-Tahap 2 (PRD bagian 11): layar pasien, kotak simulasi, mode demo. Dikerjakan dalam dua bagian.
-Posisi: 2a sudah di `main` (PR #3). Bagian 2b (P1, P5 + notifikasi, P7, banner izin) selesai di cabang `tahap-2b`, build dan tes lulus di GitHub Actions, menunggu uji di HP.
+Tahap 3 (PRD bagian 11): relay + sisi PMO, eskalasi dan STATUS_HARIAN sampai ke halaman web relay.
+Posisi: 2a di `main` (PR #3). 2b di cabang `tahap-2b` (PR #4), sudah diuji di tablet, menunggu digabung. Tahap 3 selesai di cabang `tahap-3` (dibuat dari `tahap-2b`), diuji ujung ke ujung di tablet dengan relay di laptop.
 
 ## 2. Sudah jadi dan sudah diuji
 - Tahap 0 (di `main`): build APK lewat GitHub Actions, `applicationId` `id.esgas.kotakobat`, nama `[NAMA APLIKASI]`. APK terpasang dan terbuka di HP Abyan.
@@ -11,17 +11,30 @@ Posisi: 2a sudah di `main` (PR #3). Bagian 2b (P1, P5 + notifikasi, P7, banner i
 - Tahap 2b: GitHub Actions run 45155539006 (23-11-2026): 83 tes unit lulus, 0 gagal (15 tes baru untuk jadwal pengingat, 3 untuk pembacaan teks persetujuan); APK ter-build. Ini hanya membuktikan logika dan kompilasi, belum perilaku di HP.
 - Tahap 2b diuji di tablet Xiaomi (HyperOS 2, Android 15) lewat adb, 23-11-2026 22.15–23.10 WIB: kartu peringatan izin dan tombolnya, mode demo (lompat hari, majukan jam), P5 muncul sendiri pada hari rawan, "Ingatkan 30 menit lagi" muncul lagi tepat 30 menit kemudian, "Saya sudah minum obat" tercatat di Beranda dan Riwayat, alarm nyata berbunyi tepat 22.30.00 saat layar terkunci, notifikasi layar kunci tanpa kata TB.
 - Perbaikan sesudah uji itu (build lokal, 88 tes lulus, dipasang dan dicek di tablet): peringatan Xiaomi "Tampil di Layar kunci" di kartu izin dengan tombol ke Perizinan lainnya; pesan galat relay berbahasa Indonesia (tanpa teks teknis) dan galat PMO hanya tampil di tab PMO; tanda kutip di teks yang sebelumnya hilang.
+- "Belum dipantau" (2b): hari sebelum aplikasi dipasang tampil "Belum dipantau" di Riwayat dan "–" di deret minggu; 95 tes lulus.
+- Tahap 3 (build lokal: 103 tes unit lulus; tes relay lulus): diuji 23-11-2026 23.30–23.45 WIB di tablet, relay di laptop lewat `adb reverse`, halaman PMO di Chrome tablet:
+  - migrasi `pasien.db` 2 ke 3 berjalan di tablet, data lama tetap ada;
+  - ringkasan 7 hari sampai ke relay dan tampil di halaman PMO (DEMO, hari ke-, ✓/✗/!/–);
+  - PMO terhubung dengan kode undangan dari tab PMO;
+  - 2 dosis terlewat berturut-turut (mode demo) → ESKALASI sampai di relay dalam ±5 detik, dengan teks `pmo_eskalasi` dan nilai ulang-kirim dari file aturan (30 menit, 3 kali); halaman PMO menampilkan kartu "2 dosis terlewat berturut-turut", "Kotak belum pernah dibuka", "Hari rawan";
+  - "Tandai dilihat" di halaman PMO → Riwayat pasien "Kabar ke PMO: dilihat oleh Ani" dalam 9 detik;
+  - hari terlewat ke-3 dan ke-4 masing-masing mengirim satu ESKALASI;
+  - ulang-kirim sampai `maks_ulang` dan berhenti setelah "Tandai dilihat" diuji di `relay/test.mjs` (selang dipersingkat), belum ditunggu 30 menit di HP.
+- Tahap 3 diuji ulang lewat WiFi saja (tanpa USB), 23-11-2026 23.45–00.00 WIB: laptop dan tablet di WiFi yang sama (10.133.58.x). Aplikasi menemukan relay sendiri saat alamat lama tidak menjawab, dan "Cari relay di WiFi ini" juga menemukannya; halaman PMO dibuka di `http://10.133.58.92:8787/`, PMO "Sari" terhubung dengan kode baru; "Atur ulang demo" mengembalikan halaman PMO ke data nyata (hari 1, tanpa tanda DEMO); putaran demo baru: 2 dosis terlewat → ESKALASI di relay ±2 detik → kartu di halaman PMO → "Tandai dilihat" → Riwayat pasien "Kabar ke PMO: dilihat oleh Sari" dalam beberapa detik.
+- Empat bug ditemukan dan diperbaiki saat uji WiFi: (1) "Atur ulang demo" bisa bertabrakan dengan pemeriksaan 15 detik sehingga ESKALASI demo tercatat ulang dan terkirim sesudah reset; sekarang reset memakai kunci yang sama dan mematikan demo lebih dulu, dan hanya catatan putaran demo saat ini yang dihitung. (2) Relay menyimpan ESKALASI demo yang belum dilihat sesudah demo selesai dan terus mengirim ulang; sekarang data demo dihapus begitu HP kembali ke data nyata. (3) Halaman PMO memunculkan kabar dari mode lain dan tidak membuang kabar yang sudah hilang dari relay saat memuat ulang. (4) Id kejadian relay bisa dipakai ulang sesudah data demo dihapus; tabel `events` sekarang AUTOINCREMENT (relay.db lama dibangun ulang sekali saat start, isinya tetap).
 
 ## 3. Sudah dibuat tetapi belum diuji
 - Semua layar dan perilaku 2b belum pernah dijalankan di HP (tidak ada emulator di cloud): P1 Persetujuan, P5 Pengingat khusus (layar penuh, tombol, catatan tombol di Riwayat), notifikasi jam minum, terlambat, dan pengingat ulang lewat alarm Android, P7 PMO berbahasa Indonesia, kartu Relay di Pengaturan, peringatan izin di Beranda.
 - Migrasi `pasien.db` versi 1 ke 2 (tabel `log_pengingat` baru): APK 2b di tablet uji dipasang baru, bukan di atas 2a, jadi migrasi belum terbukti di HP. SQL migrasi sudah dicocokkan dengan tabel buatan Room dan sama persis.
 - P1 Persetujuan (sudah disetujui sebelum uji), notifikasi biasa pada hari bukan hari rawan, dan pengingat TERLAMBAT belum dilihat di HP.
 - P5 di atas layar kunci sesudah izin Xiaomi "Tampil di Layar kunci" dinyalakan belum diuji ulang.
+- Tahap 3: ulang-kirim ESKALASI setelah 30 menit nyata; push FCM ke HP PMO (Firebase belum dipakai); mode PMO di aplikasi Android (masih tampilan lama berbahasa Inggris, tidak dipakai karena PMO memakai halaman web); halaman PMO di HP lain lewat WiFi/hotspot (uji memakai USB).
 - Dari 2a: riwayat dan pita "Nilai contoh" belum terlihat di tangkapan layar.
 
 ## 4. Belum dikerjakan
-- Tahap 3 sampai 7 (relay ESKALASI dan STATUS_HARIAN, mode PMO, protokol kotak, firmware, mode bepergian, uji skenario).
-- Mode PMO (HP pendamping) masih tampilan lama berbahasa Inggris; diganti di Tahap 3.
+- Tahap 4 sampai 7 (protokol kotak, firmware, mode bepergian, uji skenario).
+- Tombol "Hubungi" di halaman PMO (PRD M2): aplikasi belum punya isian nomor HP pasien.
+- Mode PMO di aplikasi Android masih tampilan lama berbahasa Inggris; tidak dipakai selama PMO memakai halaman web.
 
 ## 5. Keputusan saya
 - 23-11-2026: dosis yang lewat tengah malam dihitung ke tanggal jam minum.
@@ -54,6 +67,13 @@ Asumsi Claude untuk "Belum dipantau":
 - Dosis yang jendelanya masih terbuka saat P2 tetap dihitung. Catatan kotak atau konfirmasi sebelum batas tetap dihitung diminum.
 - Di mode demo, "Lompat ke hari" memulai hitungan dari jam virtual saat itu, dan "Isi riwayat contoh" memundurkannya ke hari contoh tertua agar 2 hari terlewat contoh tetap terhitung.
 
+Asumsi Claude di Tahap 3:
+- Bila beberapa hari memenuhi syarat eskalasi sekaligus (misalnya HP mati beberapa hari), hanya hari terbaru yang dikirim; yang lebih lama dicatat tanpa dikirim.
+- ESKALASI unik per tanggal dosis; di mode demo tiap putaran (sesudah "Atur ulang demo") memakai id baru di relay agar latihan demo bisa diulang.
+- Nama yang dilihat PMO = nama panggilan pasien. Relay hanya menyimpan nama panggilan, status dosis, dan kejadian.
+- Halaman PMO memakai jendela kecil berbunyi lembut (bukan sirene) untuk ESKALASI; "Nanti" menundanya sampai dikirim ulang.
+- Ringkasan harian dikirim tiap ada perubahan, tiap 5 menit, dan tiap 30 detik selama ada ESKALASI yang belum dilihat (paling lama 24 jam).
+
 Asumsi Claude di Tahap 2b:
 - Saat jam minum dan saat menjadi terlambat: bila hari rawan dan batas `maks_per_hari` belum tercapai, yang tampil pengingat khusus (P5); bila tidak, notifikasi biasa. Pengingat ulang berikutnya selalu notifikasi biasa.
 - "Ingatkan x menit lagi" menampilkan P5 lagi dan tidak dihitung dalam `maks_per_hari`.
@@ -65,18 +85,19 @@ Asumsi Claude di Tahap 2b:
 
 ## 6. Menunggu dari saya
 - Pasang APK 2b di atas APK 2a (tanpa menghapus), jalankan langkah uji di pull request 2b, dan laporkan hasilnya.
-- Menggabungkan pull request 2b bila uji lancar.
+- Menggabungkan pull request 2b (#4), lalu pull request Tahap 3.
+- Untuk demo: laptop, HP pasien, dan HP/laptop PMO di satu WiFi atau hotspot; port 8787 dibuka di firewall laptop.
 - Nama aplikasi final, nilai dan teks [DIISI ABYAN] di `aturan_program.json` (termasuk teks notifikasi), dan teks persetujuan di `app/src/main/assets/persetujuan.md` (kapan saja).
 
 ## 7. Kendala dan risiko
 - Cloud ini tidak bisa mengunduh Android SDK atau file hasil build, jadi build dan tes aplikasi hanya berjalan di GitHub Actions.
 - Android 12 ke atas meminta izin "Alarm & pengingat" untuk alarm tepat waktu; tanpa izin itu pengingat bisa terlambat beberapa menit. Beberapa merek HP (misalnya Xiaomi, Oppo, Vivo) juga menahan aplikasi di latar walau izin sudah diberikan.
 - Xiaomi (HyperOS): tanpa izin "Tampil di Layar kunci" P5 tidak bisa tampil di atas layar kunci (hanya notifikasi). Di tablet uji, izin layar penuh Android juga kembali mati beberapa detik sesudah setiap pembaruan APK; kartu peringatan menampilkannya lagi dan harus dinyalakan ulang.
-- Mode PMO di HP pendamping masih berbahasa Inggris dan menyebut gelang; diganti di Tahap 3.
 - Kunci debug di repo publik: siapa pun bisa membuat APK yang ditandatangani dengan kunci yang sama. Aman selama hanya APK dari GitHub Actions repo ini yang dipasang.
 - Alamat relay bawaan build debug (`192.168.0.104`) adalah alamat Pi di rumah saudara; perlu "Cari relay" atau diganti saat demo.
-- Tahap 3: timer ulang-kirim relay ditulis langsung di `relay/server.mjs` (2 menit, 5 kali, hanya FALL/SOS), sedangkan PRD meminta nilainya dari konfigurasi aplikasi. Perlu diputuskan saat Tahap 3 (misalnya nilainya ikut dikirim dalam kejadian ESKALASI).
+- Halaman PMO hanya berbunyi selama terbuka di depan dan layar menyala; browser tidak bisa membangunkan HP terkunci, dan notifikasi browser butuh HTTPS (tidak ada di `http://` LAN). Chrome juga membekukan sambungan tab yang tidak tampil; halaman menyambung ulang saat tampil lagi.
+- Dosis yang jadi TERLEWAT diperiksa lewat alarm di batas terlewat. Bila Android menahan aplikasi di latar (lihat Xiaomi di atas), ESKALASI baru terkirim saat aplikasi bangun lagi.
 - Lama pengobatan dan fase di konfigurasi masih [CONTOH]; perlu dicek ke PNPK TB [CEK].
 
 ## 8. Terakhir diperbarui
-23-11-2026, 23.15 WIB
+24-11-2026, 00.05 WIB

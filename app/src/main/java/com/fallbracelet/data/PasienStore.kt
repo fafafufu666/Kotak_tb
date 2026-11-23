@@ -88,6 +88,39 @@ data class LogPengingat(
     }
 }
 
+/**
+ * One missed day that qualified for an ESKALASI to the PMO (PRD 7.4), sent or only recorded, and
+ * what the relay said about it ("Dilihat oleh …").
+ */
+@Entity(tableName = "eskalasi")
+data class EskalasiEntity(
+    /** [perangkat] + "/" + [tanggal]: one per missed day and per demo session. */
+    @PrimaryKey val kunci: String,
+    /** The missed dose's date (ISO). */
+    val tanggal: String,
+    /** The relay's device address: [PERANGKAT_NYATA], or "demo-" + a session id in demo mode. */
+    val perangkat: String,
+    val demo: Boolean,
+    /** When it was decided, epoch ms (virtual clock in demo mode). */
+    val dibuatPada: Long,
+    val hariKe: Int,
+    val terlewatBerturut: Int,
+    /** The last box opening before it, epoch ms; null = never opened. */
+    val terakhirDibuka: Long?,
+    val hariRawan: Boolean,
+    /** False for an older day recorded together with a newer one: never sent. */
+    val kirim: Boolean,
+    /** When the relay accepted it (real clock), and its id there; null while waiting. */
+    val terkirimPada: Long?,
+    val idRelay: Long?,
+    val dilihatOleh: String?,
+    val dilihatPada: Long?,
+) {
+    companion object {
+        const val PERANGKAT_NYATA = "kotakobat"
+    }
+}
+
 @Dao
 interface PasienDao {
     @Insert
@@ -131,19 +164,50 @@ interface PasienDao {
 
     @Query("DELETE FROM log_pengingat")
     suspend fun hapusSemuaLog()
+
+    @Query("SELECT * FROM eskalasi ORDER BY tanggal ASC")
+    fun eskalasi(): Flow<List<EskalasiEntity>>
+
+    @Query("SELECT * FROM eskalasi WHERE kirim = 1 AND terkirimPada IS NULL ORDER BY tanggal ASC")
+    suspend fun eskalasiMenunggu(): List<EskalasiEntity>
+
+    /** Sent since [sejak] (real clock) and not yet seen by a PMO. */
+    @Query("SELECT COUNT(*) FROM eskalasi WHERE kirim = 1 AND terkirimPada > :sejak AND dilihatPada IS NULL")
+    suspend fun jumlahBelumDilihat(sejak: Long): Int
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun tambahEskalasi(e: EskalasiEntity)
+
+    @Query("UPDATE eskalasi SET terkirimPada = :pada, idRelay = :id WHERE kunci = :kunci")
+    suspend fun eskalasiTerkirim(kunci: String, pada: Long, id: Long)
+
+    @Query(
+        "UPDATE eskalasi SET dilihatOleh = :oleh, dilihatPada = :pada " +
+            "WHERE perangkat = :perangkat AND tanggal = :tanggal AND dilihatPada IS NULL"
+    )
+    suspend fun eskalasiDilihat(perangkat: String, tanggal: String, oleh: String, pada: Long)
+
+    @Query("DELETE FROM eskalasi WHERE demo = 1")
+    suspend fun hapusEskalasiDemo()
+
+    @Query("DELETE FROM eskalasi")
+    suspend fun hapusSemuaEskalasi()
 }
 
 /**
  * The patient's records, in their own database file so the bracelet's `bracelet.db` (and its
  * migrations) stays untouched.
  */
-@Database(entities = [KejadianPasien::class, JamMinumEntity::class, LogPengingat::class], version = 2, exportSchema = false)
+@Database(
+    entities = [KejadianPasien::class, JamMinumEntity::class, LogPengingat::class, EskalasiEntity::class],
+    version = 3, exportSchema = false,
+)
 abstract class PasienDatabase : RoomDatabase() {
     abstract fun pasien(): PasienDao
 
     companion object {
         fun create(context: Context): PasienDatabase =
-            Room.databaseBuilder(context, PasienDatabase::class.java, "pasien.db").addMigrations(MIGRASI_1_2).build()
+            Room.databaseBuilder(context, PasienDatabase::class.java, "pasien.db").addMigrations(MIGRASI_1_2, MIGRASI_2_3).build()
 
         /** Stage 2b: adds the reminder log; earlier records stay. */
         val MIGRASI_1_2 = object : Migration(1, 2) {
@@ -153,6 +217,19 @@ abstract class PasienDatabase : RoomDatabase() {
                         "`jenis` TEXT NOT NULL, `urutan` INTEGER NOT NULL, `waktuPemicu` INTEGER NOT NULL, " +
                         "`ditanganiPada` INTEGER, `hasil` TEXT, `pesanId` TEXT, `aksi` TEXT, `aksiPada` INTEGER, " +
                         "`demo` INTEGER NOT NULL, PRIMARY KEY(`kunci`))"
+                )
+            }
+        }
+
+        /** Stage 3: adds the ESKALASI record; earlier records stay. */
+        val MIGRASI_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `eskalasi` (`kunci` TEXT NOT NULL, `tanggal` TEXT NOT NULL, " +
+                        "`perangkat` TEXT NOT NULL, `demo` INTEGER NOT NULL, `dibuatPada` INTEGER NOT NULL, " +
+                        "`hariKe` INTEGER NOT NULL, `terlewatBerturut` INTEGER NOT NULL, `terakhirDibuka` INTEGER, " +
+                        "`hariRawan` INTEGER NOT NULL, `kirim` INTEGER NOT NULL, `terkirimPada` INTEGER, " +
+                        "`idRelay` INTEGER, `dilihatOleh` TEXT, `dilihatPada` INTEGER, PRIMARY KEY(`kunci`))"
                 )
             }
         }
