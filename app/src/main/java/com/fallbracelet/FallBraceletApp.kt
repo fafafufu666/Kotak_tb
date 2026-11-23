@@ -33,7 +33,10 @@ class FallBraceletApp : Application() {
             scope = scope,
         )
         val pengingat = PengingatPasien(this).apply { buatSaluran() }
-        pasien = PasienManager(this, PasienDatabase.create(this), PasienRepository(this), scope, pengingat)
+        pasien = PasienManager(
+            this, PasienDatabase.create(this), PasienRepository(this), scope, pengingat,
+            relay = manager.relay, pengaturanHp = settings, hpFlow = manager.appSettings,
+        )
         caregiver = CaregiverManager(this, settings, alerts, scope, manager.finder) { manager.appSettings.value }
         manager.start()
         caregiver.start()

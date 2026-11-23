@@ -1,4 +1,8 @@
-# relay — Raspberry Pi relay
+# relay — relay for the patient's phone and the PMO
+
+Runs on a laptop (the plan for the demo) or a Raspberry Pi. Forked from the FallBracelet relay; the
+medicine-box additions (stage 3) are ESKALASI with the app's own re-send timing, the daily dose
+summary (STATUS_HARIAN) and the PMO web page in Indonesian.
 
 ## Purpose
 
@@ -12,9 +16,9 @@ one package is `firebase-admin`. Without it, or without the key, the relay runs 
 
 | File | What it does |
 |---|---|
-| `server.mjs` | The relay: HTTP routes, SQLite schema (wearers, caregivers, links, invites, events, push tokens, meta), SSE fan-out, offline and escalation timers. `PORT` (default 8787), `DB_PATH` and `LAN_ONLY` (default on) env vars |
+| `server.mjs` | The relay: HTTP routes, SQLite schema (wearers, caregivers, links, invites, events, days, push tokens, meta), SSE fan-out, offline and re-send timers. `PORT` (default 8787), `DB_PATH`, `LAN_ONLY` (default on) and `TICK_MS` (timer period, default 30 000; the test uses 200) env vars |
 | `push.mjs` | FCM push: high-priority data messages for FALL/SOS and re-pushes, normal for TEST, LOW_BATTERY, OFF; drops tokens FCM rejects for good |
-| `web/index.html` | Caregiver mode in a browser, served at `/` and `/caregiver` (see below); a single self-contained page |
+| `web/index.html` | The PMO page in a browser (Indonesian), served at `/` and `/caregiver` (see below); a single self-contained page |
 | `test.mjs` | End-to-end test: starts `server.mjs` on port 18787 with a throwaway database and drives the API |
 | `package.json` / `package-lock.json` | Node ≥ 22, `npm start` / `npm test`, the `firebase-admin` dependency |
 | `fall-bracelet-relay.service` | systemd unit for the Pi (replace `YOUR_PI_USER`) |
@@ -33,6 +37,21 @@ Not in git: `relay.db*` (the database) and `firebase-service-account.json` (the 
 ```bash
 npm ci && npm test
 ```
+
+## Run on a laptop (demo)
+
+```bash
+cd relay && npm ci && npm start          # listens on :8787, database relay/relay.db
+```
+
+The patient's phone and the PMO's browser must reach the laptop: put all of them on one WiFi
+(e.g. the laptop's or a phone's hotspot). The app finds the relay by itself ("Cari relay di WiFi
+ini" in Pengaturan, or automatically when the old address stops answering); the PMO opens
+`http://<laptop address>:8787/`. A firewall on the laptop must allow port 8787.
+
+For testing over USB instead of WiFi: `adb reverse tcp:8787 tcp:8787`, then the relay address in
+the app is `http://127.0.0.1:8787`, and the PMO page opens at the same address in the phone's
+browser.
 
 ## Run on the Pi
 
@@ -55,18 +74,24 @@ links. Settings and the caregiver link screen also have "Find relay on this WiFi
 Debug builds of the app point at `http://192.168.0.104:8787` (`app/src/debug/res/values/relay.xml`)
 and allow plain HTTP. Anything outside the home network needs HTTPS, e.g. a Cloudflare Tunnel.
 
-## Caregiver mode in a browser
+## The PMO page in a browser (PRD 6.2 M1–M3)
 
-Open `http://<pi address>:8787/` on any phone or laptop on the same WiFi. It does what the app's
-Caregiver mode does: link with the wearer's 6-digit invite code, a live stream with a full-screen
-alarm and Acknowledge, and a dashboard per wearer (online, bracelet, state, battery, last check-in,
-history). The token stays in that browser's storage, so a reload keeps the link.
+Open `http://<relay address>:8787/` on any phone or laptop on the same WiFi. Link with the 6-digit
+code from the patient's PMO tab and a name (shown to the patient as "Dilihat oleh …"). Per patient:
+"Pendamping untuk [nama]", the day number, a DEMO badge in demo mode, an alert card for each unseen
+ESKALASI ("2 dosis terlewat berturut-turut", "Terakhir dibuka: …") with **Tandai dilihat**, the
+7-day row (✓ diminum, ✗ terlewat, ! terlambat, • belum, – belum dipantau) and the list of past
+ESKALASI. A new or re-sent ESKALASI opens an overlay with a short chime and vibration; "Nanti"
+puts it aside until it is re-sent. The token stays in that browser's storage, so a reload keeps
+the link. Texts are neutral: no diagnosis, no medicine names.
 
-A browser can't wake a locked phone the way the app's full-screen alarm does. The page rings
-(after one tap, which browsers require before playing sound), vibrates on Android, flashes and
-keeps the screen on only while it is open in the foreground. Notifications and the screen wake
-lock need HTTPS, so on plain `http://` on the LAN they're off; the page says what's missing.
-The page is read on every request, so copying a new `web/index.html` needs no restart.
+A browser can't wake a locked phone. The page chimes (after one tap, which browsers require before
+playing sound) and keeps the screen on only while it is open in the foreground. A browser may also
+freeze a hidden tab's connection; the page reconnects when it is shown again, or after 60 s
+without a keepalive, and catches up on what it missed. Notifications and the screen wake lock need
+HTTPS, so on plain `http://` on the LAN they're off; the page says what's missing. The page is
+read on every request, so copying a new `web/index.html` needs no restart. The PMO's "Hubungi"
+button (PRD M2) is not there yet: the app has no field for the patient's phone number.
 
 ## Push (Firebase Cloud Messaging)
 
@@ -95,12 +120,17 @@ Every phone gets a random bearer token; only its SHA-256 is stored.
 | `POST /v1/invites` | wearer | 6-digit code, single use, 15 min |
 | `POST /v1/link` | caregiver | `{code, name}`; returns a caregiver token (send an existing one to follow another wearer) |
 | `GET /v1/caregivers`, `DELETE /v1/caregivers/:id` | wearer | List / remove linked caregivers |
-| `POST /v1/events` | wearer | Idempotent on (wearer, deviceAddress, seq) |
+| `POST /v1/events` | wearer | Idempotent on (wearer, deviceAddress, seq). An `ESKALASI` also carries `detail` (tanggal, hariKe, terlewatBerturut, terakhirDibuka, hariRawan), `demo`, and the app's `ulangKirimMenit` / `maksUlang` (from `eskalasi.ulang_kirim_menit` / `eskalasi.maks_ulang`). The app sends deviceAddress `kotakobat` (or `demo-<run id>`) and seq = the missed date's epoch day, so one per date |
+| `POST /v1/status-harian` | wearer | The daily summary (STATUS_HARIAN): `{tanggal, demo, hariKe, totalHari, terakhirDibuka, hariRawan, terlewatBerturut, hari: [{tanggal, hariKe, status, waktu}]}`, the last 7 days. Idempotent; the reply lists recent ESKALASI with `ackedBy` / `ackedAt` |
 | `POST /v1/heartbeat` | wearer | Latest status; reply carries acknowledgements and the caregiver count |
-| `GET /v1/dashboard` | caregiver | Each followed wearer with status and the last 100 events (`?limit=` up to 1000) |
+| `GET /v1/dashboard` | caregiver | Each followed wearer with status, `ringkasan` (latest summary), `days` (the 7-day row in the current mode) and the last 100 events (`?limit=` up to 1000) |
 | `POST /v1/events/:id/ack` | caregiver | "Seen by …" |
 | `PUT /v1/push-token` | caregiver | `{token}`: this phone's FCM token |
-| `GET /v1/stream` | caregiver | SSE: `hello`, `event`, `status`, `ack`, `offline`, `online`, `unlinked`. `Last-Event-ID` replays the last 24 h |
+| `GET /v1/stream` | caregiver | SSE: `hello`, `event`, `days`, `status`, `ack`, `offline`, `online`, `unlinked`. `Last-Event-ID` replays the last 24 h |
 
-Timers: a wearer with no heartbeat for 15 min is pushed to caregivers as `offline`. A FALL or SOS
-nobody acknowledged is pushed again every 2 min, up to 5 times.
+Timers: a wearer with no heartbeat for 15 min is pushed to caregivers as `offline`. An ESKALASI
+nobody marked seen is sent again every `ulangKirimMenit`, up to `maksUlang` times (at least 1 s
+apart, at most 20 times), as the app's rules file says. A FALL or SOS nobody acknowledged is
+pushed again every 2 min, up to 5 times. Older `relay.db` files get the new columns
+(`events.detail`, `demo`, `resend_every_ms`, `max_resends`, `wearers.ringkasan`) and the `days`
+table on start.

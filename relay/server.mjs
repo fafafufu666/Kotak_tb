@@ -1,7 +1,9 @@
-// FallBracelet relay: the wearer's phone uploads events and heartbeats, caregivers' phones get
-// alarms the moment an event arrives, by Firebase Cloud Messaging push (push.mjs) and over a live
-// Server-Sent Events stream while the app is open. Runs on a Raspberry Pi with Node 22; the only
-// dependency is firebase-admin, and without it (or its key) the relay works stream-only.
+// Relay (forked from FallBracelet): the patient's phone uploads events, heartbeats and its daily
+// dose summary; PMO phones and the PMO web page (web/index.html) hear about an ESKALASI the moment
+// it arrives, by Firebase Cloud Messaging push (push.mjs) and over a live Server-Sent Events
+// stream. Runs on a laptop or a Raspberry Pi with Node 22+; the only dependency is firebase-admin,
+// and without it (or its key) the relay works stream-only. It stores nicknames, dose statuses and
+// events only: no diagnosis, no medicine names.
 //
 //   node --disable-warning=ExperimentalWarning server.mjs      (PORT, DB_PATH env vars optional)
 //
@@ -22,10 +24,16 @@ const DB_PATH = process.env.DB_PATH ?? new URL('./relay.db', import.meta.url).pa
 const WEB_PAGE = new URL('./web/index.html', import.meta.url);
 const OFFLINE_AFTER_MS = 15 * 60_000;   // PRD: caregivers told the wearer is offline after 15 min
 const ESCALATE_AFTER_MS = 2 * 60_000;   // PRD: re-push an unacknowledged FALL/SOS after 2 min
+// How often the timers run; tests set it lower so re-sends can be checked in seconds.
+const TICK_MS = Number(process.env.TICK_MS ?? 30_000);
+// ESKALASI re-send limits, whatever the app asks for.
+const MIN_RESEND_MS = 1_000, MAX_RESENDS = 20;
 const INVITE_TTL_MS = 15 * 60_000;
 const REPLAY_WINDOW_MS = 24 * 3600_000; // what a reconnecting caregiver can catch up on
 const KEEPALIVE_MS = 25_000;
-const ALARM_TYPES = new Set(['FALL', 'SOS']);
+const ALARM_TYPES = new Set(['FALL', 'SOS', 'ESKALASI']);
+// Daily dose statuses the app sends (adherence/LogikaKepatuhan.kt StatusDosis).
+const DOSE_STATUSES = new Set(['BELUM', 'TERLAMBAT', 'TERLEWAT', 'DIMINUM_KOTAK', 'DIKONFIRMASI_MANUAL', 'BEPERGIAN', 'TANPA_DATA']);
 const MAX_ESCALATIONS = 5;
 
 // --- Storage ----------------------------------------------------------------------------------
@@ -57,8 +65,22 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS push_tokens (
     token TEXT PRIMARY KEY, caregiver_id INTEGER NOT NULL REFERENCES caregivers(id) ON DELETE CASCADE,
     updated_at INTEGER NOT NULL);
+  CREATE TABLE IF NOT EXISTS days (
+    wearer_id INTEGER NOT NULL REFERENCES wearers(id) ON DELETE CASCADE,
+    demo INTEGER NOT NULL, tanggal TEXT NOT NULL, hari_ke INTEGER, status TEXT NOT NULL,
+    waktu INTEGER, updated_at INTEGER NOT NULL, PRIMARY KEY (wearer_id, demo, tanggal));
   PRAGMA foreign_keys = ON;
 `);
+// Columns added for the medicine box (stage 3); ALTER only when an older relay.db lacks them.
+const addColumn = (table, column, type) => {
+  const has = db.prepare(`PRAGMA table_info(${table})`).all().some((c) => c.name === column);
+  if (!has) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+};
+addColumn('events', 'detail', 'TEXT');                 // ESKALASI facts as JSON
+addColumn('events', 'demo', 'INTEGER NOT NULL DEFAULT 0');
+addColumn('events', 'resend_every_ms', 'INTEGER');     // from the app's eskalasi.ulang_kirim_menit
+addColumn('events', 'max_resends', 'INTEGER');         // from the app's eskalasi.maks_ulang
+addColumn('wearers', 'ringkasan', 'TEXT');             // latest day summary (day number, demo, ...)
 // Identifies this relay across address changes (e.g. a new hotspot), so phones keep their links.
 db.prepare("INSERT OR IGNORE INTO meta (key, value) VALUES ('relay_id', ?)").run(crypto.randomBytes(8).toString('hex'));
 const RELAY_ID = db.prepare("SELECT value FROM meta WHERE key = 'relay_id'").get().value;
@@ -84,8 +106,8 @@ const q = {
     WHERE l.caregiver_id = ? ORDER BY w.name`),
   isLinked: db.prepare('SELECT 1 FROM links WHERE wearer_id = ? AND caregiver_id = ?'),
   insertEvent: db.prepare(`INSERT OR IGNORE INTO events (wearer_id, device_address, seq, type, battery_pct,
-    occurred_at, received_at, impact_g, alarms_24h, cancelled_24h, message)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`),
+    occurred_at, received_at, impact_g, alarms_24h, cancelled_24h, message, detail, demo, resend_every_ms, max_resends)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`),
   eventByKey: db.prepare('SELECT * FROM events WHERE wearer_id = ? AND device_address = ? AND seq = ?'),
   eventById: db.prepare('SELECT * FROM events WHERE id = ?'),
   eventsOf: db.prepare('SELECT * FROM events WHERE wearer_id = ? ORDER BY occurred_at DESC, id DESC LIMIT ?'),
@@ -97,8 +119,11 @@ const q = {
   heartbeat: db.prepare('UPDATE wearers SET last_heartbeat = ?, offline = 0, status = ? WHERE id = ?'),
   stale: db.prepare('SELECT * FROM wearers WHERE offline = 0 AND last_heartbeat IS NOT NULL AND last_heartbeat < ?'),
   markOffline: db.prepare('UPDATE wearers SET offline = 1 WHERE id = ?'),
-  unacked: db.prepare(`SELECT * FROM events WHERE type IN ('FALL', 'SOS') AND acked_at IS NULL
-    AND escalations < ? AND received_at < ? - ? * (escalations + 1) AND received_at > ?`),
+  // FALL/SOS re-send on the relay's own timing; ESKALASI on the timing the app sent with it.
+  unacked: db.prepare(`SELECT * FROM events WHERE acked_at IS NULL AND received_at > ? AND (
+      (type IN ('FALL', 'SOS') AND escalations < ? AND received_at < ? - ? * (escalations + 1))
+      OR (type = 'ESKALASI' AND resend_every_ms IS NOT NULL AND escalations < max_resends
+          AND received_at < ? - resend_every_ms * (escalations + 1)))`),
   escalate: db.prepare('UPDATE events SET escalations = escalations + 1 WHERE id = ?'),
   // One FCM token per caregiver phone; a token that moves to another caregiver follows it.
   setPushToken: db.prepare(`INSERT INTO push_tokens (token, caregiver_id, updated_at) VALUES (?, ?, ?)
@@ -107,6 +132,15 @@ const q = {
   dropPushToken: db.prepare('DELETE FROM push_tokens WHERE token = ?'),
   pushTokensOf: db.prepare(`SELECT p.token FROM links l JOIN push_tokens p ON p.caregiver_id = l.caregiver_id
     WHERE l.wearer_id = ?`),
+  setRingkasan: db.prepare('UPDATE wearers SET ringkasan = ? WHERE id = ?'),
+  upsertDay: db.prepare(`INSERT INTO days (wearer_id, demo, tanggal, hari_ke, status, waktu, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (wearer_id, demo, tanggal) DO UPDATE SET
+    hari_ke = excluded.hari_ke, status = excluded.status, waktu = excluded.waktu, updated_at = excluded.updated_at`),
+  dropDaysBetween: db.prepare('DELETE FROM days WHERE wearer_id = ? AND demo = ? AND tanggal BETWEEN ? AND ?'),
+  daysOf: db.prepare(`SELECT tanggal, hari_ke AS hariKe, status, waktu FROM days
+    WHERE wearer_id = ? AND demo = ? AND tanggal BETWEEN ? AND ? ORDER BY tanggal`),
+  eskalasiOf: db.prepare(`SELECT id, device_address, seq, acked_by, acked_at FROM events
+    WHERE wearer_id = ? AND type = 'ESKALASI' ORDER BY id DESC LIMIT 50`),
 };
 
 // --- Live streams -----------------------------------------------------------------------------
@@ -127,17 +161,36 @@ function fanOut(wearerId, type, data, id) {
   push(tokens, type, data, (t) => { q.dropPushToken.run(t); console.log('push: dropped a dead token'); });
 }
 
+const parse = (s) => { try { return s ? JSON.parse(s) : null; } catch { return null; } };
+
 const eventJson = (e) => ({
   id: e.id, wearerId: e.wearer_id, deviceAddress: e.device_address, seq: e.seq, type: e.type,
   batteryPct: e.battery_pct, occurredAt: e.occurred_at, receivedAt: e.received_at, impactG: e.impact_g,
   alarms24h: e.alarms_24h, cancelled24h: e.cancelled_24h, message: e.message,
   ackedBy: e.acked_by, ackedAt: e.acked_at, alarm: ALARM_TYPES.has(e.type), escalations: e.escalations,
+  detail: parse(e.detail), demo: !!e.demo,
 });
+
+/** The last 7 days up to the summary's "today", in the mode (demo or real) the phone is in now. */
+function daysJson(w) {
+  const r = parse(w.ringkasan);
+  if (!r?.tanggal) return [];
+  return q.daysOf.all(w.id, r.demo ? 1 : 0, addDays(r.tanggal, -6), r.tanggal);
+}
 
 const wearerJson = (w) => ({
   id: w.id, name: w.name, lastHeartbeat: w.last_heartbeat, offline: !!w.offline,
   status: w.status ? JSON.parse(w.status) : null,
+  ringkasan: parse(w.ringkasan), days: daysJson(w),
 });
+
+/** 'YYYY-MM-DD' plus [n] days. */
+function addDays(tanggal, n) {
+  const d = new Date(`${tanggal}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+const isDate = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
 
 // --- HTTP -------------------------------------------------------------------------------------
 
@@ -175,7 +228,7 @@ function caregiverAuth(req) {
 }
 
 const str = (v, max = 80) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
-const int = (v) => (Number.isFinite(Number(v)) ? Math.trunc(Number(v)) : null);
+const int = (v) => (v != null && v !== '' && Number.isFinite(Number(v)) ? Math.trunc(Number(v)) : null);
 
 function newInviteCode(wearerId, expiresAt) {
   // 6 digits, easy to read out loud; retried on the rare clash.
@@ -266,8 +319,14 @@ const routes = {
     const seq = int(b.seq), occurredAt = int(b.occurredAt);
     const device = str(b.deviceAddress, 32), type = str(b.type, 20);
     if (seq == null || occurredAt == null || !device || !type) throw new HttpError(400, 'seq, deviceAddress, type, occurredAt required');
+    // ESKALASI carries its own re-send timing from the app's rules file (eskalasi.ulang_kirim_menit,
+    // eskalasi.maks_ulang); minutes may be fractional so a demo can use short intervals.
+    const every = Number(b.ulangKirimMenit) > 0 ? Math.max(MIN_RESEND_MS, Math.round(Number(b.ulangKirimMenit) * 60_000)) : null;
+    const maxResends = every ? Math.min(Math.max(int(b.maksUlang) ?? 0, 0), MAX_RESENDS) : null;
+    const detail = b.detail && typeof b.detail === 'object' ? JSON.stringify(b.detail).slice(0, 4000) : null;
     const r = q.insertEvent.run(w.id, device, seq, type, int(b.batteryPct), occurredAt, now(),
-      Number(b.impactG) || 0, int(b.alarms24h), int(b.cancelled24h), str(b.message, 500));
+      Number(b.impactG) || 0, int(b.alarms24h), int(b.cancelled24h), str(b.message, 500),
+      detail, b.demo ? 1 : 0, every, maxResends);
     const e = q.eventByKey.get(w.id, device, seq);
     if (r.changes) fanOut(w.id, 'event', { ...eventJson(e), wearerName: w.name }, e.id);
     return { id: e.id, duplicate: !r.changes };
@@ -282,6 +341,40 @@ const routes = {
     if (w.offline) fanOut(w.id, 'online', { wearerId: w.id, name: w.name });
     fanOut(w.id, 'status', { wearerId: w.id, status: JSON.parse(status), at: now() });
     return { acks: q.acksFor.all(w.id, int(b.acksSince) ?? 0), caregivers: q.caregiversOf.all(w.id).length };
+  },
+
+  /**
+   * The patient's daily dose summary (PRD 7.4 STATUS_HARIAN): the last days' statuses for the PMO's
+   * 7-day row, plus the day number and the mode. Idempotent; days in the sent range that are not in
+   * the list are dropped. The reply says which ESKALASI the PMO has seen ("Dilihat oleh …").
+   */
+  'POST /v1/status-harian': async (req) => {
+    const w = wearerAuth(req);
+    const b = await body(req);
+    if (!isDate(b.tanggal)) throw new HttpError(400, 'tanggal (YYYY-MM-DD) required');
+    const demo = b.demo ? 1 : 0;
+    const hari = (Array.isArray(b.hari) ? b.hari : [])
+      .filter((h) => isDate(h?.tanggal) && DOSE_STATUSES.has(h.status) && h.tanggal <= b.tanggal)
+      .sort((x, y) => (x.tanggal < y.tanggal ? -1 : 1)).slice(-31);
+    const ringkasan = {
+      tanggal: b.tanggal, demo: !!demo, hariKe: int(b.hariKe), totalHari: int(b.totalHari),
+      terakhirDibuka: int(b.terakhirDibuka), hariRawan: !!b.hariRawan, terlewatBerturut: int(b.terlewatBerturut),
+      at: now(),
+    };
+    db.exec('BEGIN');
+    try {
+      if (hari.length) q.dropDaysBetween.run(w.id, demo, hari[0].tanggal, b.tanggal);
+      for (const h of hari) q.upsertDay.run(w.id, demo, h.tanggal, int(h.hariKe), h.status, int(h.waktu), now());
+      q.setRingkasan.run(JSON.stringify(ringkasan), w.id);
+      db.exec('COMMIT');
+    } catch (err) { db.exec('ROLLBACK'); throw err; }
+    const fresh = db.prepare('SELECT * FROM wearers WHERE id = ?').get(w.id);
+    fanOut(w.id, 'days', { wearerId: w.id, ringkasan, days: daysJson(fresh) });
+    return {
+      eskalasi: q.eskalasiOf.all(w.id).map((e) => ({
+        id: e.id, deviceAddress: e.device_address, seq: e.seq, ackedBy: e.acked_by, ackedAt: e.acked_at,
+      })),
+    };
   },
 
   'GET /v1/dashboard': (req) => {
@@ -385,13 +478,13 @@ setInterval(() => {
     fanOut(w.id, 'offline', { wearerId: w.id, name: w.name, lastHeartbeat: w.last_heartbeat });
     console.log(`wearer ${w.id} offline`);
   }
-  for (const e of q.unacked.all(MAX_ESCALATIONS, now(), ESCALATE_AFTER_MS, now() - REPLAY_WINDOW_MS)) {
+  for (const e of q.unacked.all(now() - REPLAY_WINDOW_MS, MAX_ESCALATIONS, now(), ESCALATE_AFTER_MS, now())) {
     q.escalate.run(e.id);
     const w = db.prepare('SELECT name FROM wearers WHERE id = ?').get(e.wearer_id);
     fanOut(e.wearer_id, 'event', { ...eventJson(q.eventById.get(e.id)), wearerName: w?.name, escalated: true }, e.id);
     console.log(`event ${e.id} escalated`);
   }
-}, 30_000).unref();
+}, TICK_MS).unref();
 
 await initPush();
 server.listen(PORT, () => console.log(`relay listening on :${PORT}, db ${DB_PATH}${LAN_ONLY ? ', home network only' : ''}`));

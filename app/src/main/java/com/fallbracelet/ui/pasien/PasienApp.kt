@@ -97,7 +97,7 @@ private fun TabUtama(vm: PasienViewModel, app: AppViewModel, demo: Boolean) {
             when (tab) {
                 TabPasien.Beranda -> BerandaScreen(vm, app)
                 TabPasien.Riwayat -> RiwayatScreen(vm)
-                TabPasien.Pmo -> PmoScreen(app)
+                TabPasien.Pmo -> PmoScreen(app, vm)
                 TabPasien.Pengaturan -> PengaturanScreen(vm, app)
             }
         }

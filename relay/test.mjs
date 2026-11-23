@@ -8,7 +8,7 @@ import { join } from 'node:path';
 const PORT = 18787;
 const base = `http://127.0.0.1:${PORT}`;
 const server = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', new URL('./server.mjs', import.meta.url).pathname], {
-  env: { ...process.env, PORT: String(PORT), DB_PATH: join(tmpdir(), `relay-test-${process.pid}.db`) },
+  env: { ...process.env, PORT: String(PORT), DB_PATH: join(tmpdir(), `relay-test-${process.pid}.db`), TICK_MS: '200' },
   stdio: ['ignore', 'pipe', 'inherit'],
 });
 await new Promise((ok) => server.stdout.once('data', ok));
@@ -54,7 +54,7 @@ try {
   const page = await fetch(base + '/');
   assert.equal(page.status, 200);
   assert.match(page.headers.get('content-type'), /text\/html/);
-  assert.match(await page.text(), /Caregiver/, 'web caregiver page served');
+  assert.match(await page.text(), /Pendamping/, 'PMO web page served');
 
   const health = (await api('GET', '/v1/health')).json;
   assert.equal(health.service, 'fallbracelet-relay');
@@ -102,6 +102,66 @@ try {
   const dash = (await api('GET', '/v1/dashboard', c.token)).json;
   assert.equal(dash.wearers[0].events.length, 2);
   assert.equal(dash.wearers[0].events.find((e) => e.id === first.id).ackedBy, 'Sara');
+
+  // --- Medicine box: ESKALASI with the app's re-send timing, daily statuses, "Dilihat oleh" -----
+
+  const p = (await api('POST', '/v1/wearers', null, { name: 'Budi' })).json;
+  const inv2 = (await api('POST', '/v1/invites', p.token)).json;
+  const pmo = (await api('POST', '/v1/link', null, { code: inv2.code, name: 'Ani' })).json;
+  const ps = await listen(pmo.token);
+  await wait(200);
+
+  const hari = ['2026-11-18', '2026-11-19', '2026-11-20', '2026-11-21', '2026-11-22', '2026-11-23', '2026-11-24']
+    .map((tanggal, i) => ({ tanggal, hariKe: 52 + i, status: i < 4 ? 'DIMINUM_KOTAK' : i < 6 ? 'TERLEWAT' : 'BELUM', waktu: null }));
+  const st = (await api('POST', '/v1/status-harian', p.token, {
+    tanggal: '2026-11-24', demo: true, hariKe: 58, totalHari: 180, terakhirDibuka: Date.parse('2026-11-21T00:05:00Z'),
+    hariRawan: true, terlewatBerturut: 2, hari: [...hari, { tanggal: '2026-11-17', status: 'NONSENSE' }],
+  }));
+  assert.equal(st.status, 200);
+  assert.deepEqual(st.json.eskalasi, [], 'no escalation yet');
+  assert.equal((await api('POST', '/v1/status-harian', p.token, { hari })).status, 400, 'tanggal required');
+
+  const eskalasi = (tanggal, seq) => ({
+    deviceAddress: 'demo-abc', seq, type: 'ESKALASI', occurredAt: Date.now(), message: 'Teks netral',
+    demo: true, ulangKirimMenit: 0.01, maksUlang: 2,
+    detail: { tanggal, terlewatBerturut: 2, terakhirDibuka: Date.parse('2026-11-21T00:05:00Z'), hariRawan: true, hariKe: 57 },
+  });
+  const esk = (await api('POST', '/v1/events', p.token, eskalasi('2026-11-23', 20415))).json;
+  assert.equal((await api('POST', '/v1/events', p.token, eskalasi('2026-11-23', 20415))).json.duplicate, true, 'one per date');
+  await wait(2500);
+  const got = ps.got.filter((m) => m.type === 'event' && m.data.id === esk.id);
+  assert.equal(got.length, 3, 'sent once, then re-sent maksUlang (2) times');
+  assert.equal(got[0].data.alarm, true);
+  assert.equal(got[0].data.demo, true);
+  assert.equal(got[0].data.detail.terlewatBerturut, 2);
+  assert.ok(got[2].data.escalated);
+  assert.ok(ps.got.some((m) => m.type === 'days' && m.data.days.length === 7), 'PMO page hears the 7 days live');
+
+  // A second one, acknowledged at once: no re-sends after "Tandai dilihat".
+  const esk2 = (await api('POST', '/v1/events', p.token, eskalasi('2026-11-24', 20416))).json;
+  await api('POST', `/v1/events/${esk2.id}/ack`, pmo.token);
+  await wait(1500);
+  assert.equal(ps.got.filter((m) => m.type === 'event' && m.data.id === esk2.id).length, 1, 'ack stops re-sends');
+  ps.close();
+
+  const pd = (await api('GET', '/v1/dashboard', pmo.token)).json.wearers[0];
+  assert.equal(pd.name, 'Budi');
+  assert.equal(pd.ringkasan.hariKe, 58);
+  assert.equal(pd.ringkasan.terakhirDibuka, Date.parse('2026-11-21T00:05:00Z'));
+  assert.equal(pd.ringkasan.demo, true);
+  assert.deepEqual(pd.days.map((d) => d.status), hari.map((h) => h.status), '7-day row, invalid status dropped');
+  assert.equal(pd.events.find((e) => e.id === esk2.id).ackedBy, 'Ani');
+
+  const seen = (await api('POST', '/v1/status-harian', p.token, { tanggal: '2026-11-24', demo: true, hari })).json.eskalasi;
+  assert.equal(seen.find((e) => e.id === esk2.id).ackedBy, 'Ani', 'patient learns who saw it');
+  assert.equal(seen.find((e) => e.id === esk.id).ackedBy, null);
+
+  // Back to real data: the PMO sees the real days, not the demo ones.
+  await api('POST', '/v1/status-harian', p.token, { tanggal: '2026-11-24', demo: false, hari: [{ tanggal: '2026-11-24', hariKe: 1, status: 'BELUM' }] });
+  const real = (await api('GET', '/v1/dashboard', pmo.token)).json.wearers[0];
+  assert.equal(real.ringkasan.demo, false);
+  assert.equal(real.ringkasan.terakhirDibuka, null, 'never opened stays null, not 0');
+  assert.deepEqual(real.days.map((d) => d.status), ['BELUM']);
 
   await api('DELETE', `/v1/caregivers/${c.caregiverId}`, w.token);
   assert.equal((await api('GET', '/v1/dashboard', c.token)).json.wearers.length, 0, 'unlinked caregiver sees nothing');

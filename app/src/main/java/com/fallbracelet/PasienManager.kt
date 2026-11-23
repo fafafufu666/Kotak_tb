@@ -12,9 +12,13 @@ import com.fallbracelet.adherence.JenisPemicu
 import com.fallbracelet.adherence.LogikaKepatuhan
 import com.fallbracelet.adherence.PembacaAturan
 import com.fallbracelet.adherence.Pemicu
+import com.fallbracelet.adherence.RencanaEskalasi
 import com.fallbracelet.adherence.RingkasanHarian
 import com.fallbracelet.adherence.StatusDosis
 import com.fallbracelet.adherence.Tindakan
+import com.fallbracelet.data.AppMode
+import com.fallbracelet.data.AppSettings
+import com.fallbracelet.data.EskalasiEntity
 import com.fallbracelet.data.JamMinumEntity
 import com.fallbracelet.data.JenisKejadian
 import com.fallbracelet.data.KejadianPasien
@@ -22,8 +26,11 @@ import com.fallbracelet.data.LogPengingat
 import com.fallbracelet.data.PasienDatabase
 import com.fallbracelet.data.PasienRepository
 import com.fallbracelet.data.PengaturanPasien
+import com.fallbracelet.data.SettingsRepository
 import com.fallbracelet.data.SumberKejadian
 import com.fallbracelet.pengingat.PengingatPasien
+import com.fallbracelet.relay.WearerRelay
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -32,9 +39,15 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.withTimeoutOrNull
+import org.json.JSONArray
+import org.json.JSONObject
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -68,6 +81,8 @@ data class KeadaanPasien(
     val riwayatJam: List<JamMinumBerlaku>,
     /** Reminder log rows of the current mode (demo or real), oldest first. */
     val logPengingat: List<LogPengingat>,
+    /** ESKALASI records of the current mode (demo or real), oldest first. */
+    val eskalasi: List<EskalasiEntity> = emptyList(),
 )
 
 /**
@@ -83,7 +98,14 @@ class PasienManager(
     /** Lives as long as the process; for work that must outlive a screen. */
     val cakupan: CoroutineScope,
     private val pengingat: PengingatPasien,
+    /** The relay, shared with the PMO tab (invites) and [BraceletManager] (heartbeats). */
+    private val relay: WearerRelay,
+    private val pengaturanHp: SettingsRepository,
+    /** The phone's settings (mode, relay address and token), shared with [BraceletManager]. */
+    private val hpFlow: StateFlow<AppSettings>,
 ) {
+    private fun hp(): AppSettings = hpFlow.value
+
     private val scope = cakupan
     private val dao = db.pasien()
     val zona: ZoneId get() = ZoneId.systemDefault()
@@ -103,9 +125,11 @@ class PasienManager(
 
     val pengaturan: StateFlow<PengaturanPasien?> = repo.pengaturan.stateIn(scope, SharingStarted.Eagerly, null)
 
+    private val catatan = combine(dao.logPengingat(), dao.eskalasi()) { log, esk -> log to esk }
+
     val keadaan: StateFlow<KeadaanPasien?> =
-        combine(repo.pengaturan, dao.semuaKejadian(), dao.jamMinum(), dao.logPengingat(), detak) { p, kejadian, jam, log, _ ->
-            hitung(p, kejadian, jam, log, Instant.now())
+        combine(repo.pengaturan, dao.semuaKejadian(), dao.jamMinum(), catatan, detak) { p, kejadian, jam, (log, esk), _ ->
+            hitung(p, kejadian, jam, log, esk, Instant.now())
         }.stateIn(scope, SharingStarted.Eagerly, null)
 
     // Declared before init: the collector below may run at once.
@@ -113,21 +137,32 @@ class PasienManager(
     /** The alarm last set, and whether it was exact, so it is only set again when it changes. */
     private var alarmTerakhir: Pair<Instant, Boolean>? = null
 
+    /** Wakes the PMO sync at once (a new ESKALASI, a changed day); it also runs on its own timer. */
+    private val pemicuSinkron = Channel<Unit>(Channel.CONFLATED)
+
     init {
         // Every new state (each 15 s tick, every new record, every demo clock change) checks
-        // whether a reminder is due and sets the alarm for the next one.
+        // whether a reminder or an ESKALASI is due and sets the alarm for the next moment.
         scope.launch { keadaan.collect { periksaPengingat() } }
+        scope.launch { sinkronLoop() }
+        // A new relay address (typed, found on the WiFi) or a new registration: sync at once.
+        scope.launch {
+            hpFlow.map { it.relayUrl to it.wearerToken }.distinctUntilChanged().collect { pemicuSinkron.trySend(Unit) }
+        }
     }
 
     /** The state right now, read straight from storage (for the alarm, which can't wait for a tick). */
-    private suspend fun hitungSekarang(): KeadaanPasien? =
-        hitung(repo.pengaturan.first(), dao.semuaKejadian().first(), dao.jamMinum().first(), dao.logPengingat().first(), Instant.now())
+    private suspend fun hitungSekarang(): KeadaanPasien? = hitung(
+        repo.pengaturan.first(), dao.semuaKejadian().first(), dao.jamMinum().first(),
+        dao.logPengingat().first(), dao.eskalasi().first(), Instant.now(),
+    )
 
     private fun hitung(
         p: PengaturanPasien,
         kejadian: List<KejadianPasien>,
         jamDb: List<JamMinumEntity>,
         log: List<LogPengingat>,
+        esk: List<EskalasiEntity>,
         nyata: Instant,
     ): KeadaanPasien? {
         val mulaiNyata = p.tanggalMulai ?: return null
@@ -167,6 +202,7 @@ class PasienManager(
             dosisTercatat = RingkasanHarian.dosisTercatat(semua),
             riwayatJam = riwayatJam,
             logPengingat = log.filter { it.demo == p.demo.aktif },
+            eskalasi = esk.filter { it.demo == p.demo.aktif },
         )
     }
 
@@ -266,9 +302,12 @@ class PasienManager(
             }
         }
         if (k.hariIni?.status?.tercatat == true) pengingat.hapusNotifikasi()
+        catatEskalasi(k)
 
-        // The alarm runs on the real clock; in demo mode the virtual clock is ahead by geserJam.
-        val berikut = rencana.berikutnya?.let { if (demo) it.minus(k.pengaturan.demo.geserJam) else it }
+        // Also wake at the next missed limit, when an ESKALASI may become due. The alarm runs on
+        // the real clock; in demo mode the virtual clock is ahead by geserJam.
+        val berikutVirtual = listOfNotNull(rencana.berikutnya, RencanaEskalasi.cekBerikutnya(jadwalDipantau(k), k.sekarang)).minOrNull()
+        val berikut = berikutVirtual?.let { if (demo) it.minus(k.pengaturan.demo.geserJam) else it }
         val alarm = berikut?.let { it to pengingat.bolehAlarmTepat() }
         if (alarm != alarmTerakhir) {
             if (berikut == null) pengingat.batalkanAlarm() else pengingat.setelAlarm(berikut)
@@ -329,6 +368,115 @@ class PasienManager(
         periksaPengingat()
     }
 
+    // --- ESKALASI and the daily summary for the PMO (PRD 7.4, stage 3) ----------------------
+
+    /**
+     * Records the missed days that need an ESKALASI (see [RencanaEskalasi]) and wakes the sync.
+     * Each date gets one record per mode and demo run, so nothing is sent twice.
+     */
+    private suspend fun catatEskalasi(k: KeadaanPasien) {
+        if (!k.pengaturan.sudahMulai) return
+        val a = aturan.aturan
+        val demo = k.pengaturan.demo.aktif
+        // k.eskalasi holds this mode's rows only, and "Atur ulang demo" deletes the demo ones,
+        // so in demo mode these are the current run's.
+        val sudah = k.eskalasi.map { LocalDate.parse(it.tanggal) }.toSet()
+        val rencana = RencanaEskalasi.rencanakan(k.semuaHari, sudah, a.eskalasi, a.modeBepergian)
+        if (rencana.kirim == null) return
+        val perangkat = if (demo) "demo-" + repo.demoSesi() else EskalasiEntity.PERANGKAT_NYATA
+        fun rekam(tanggal: LocalDate, kirim: Boolean) = EskalasiEntity(
+            kunci = "$perangkat/$tanggal", tanggal = tanggal.toString(), perangkat = perangkat, demo = demo,
+            dibuatPada = k.sekarang.toEpochMilli(), hariKe = LogikaKepatuhan.hariKe(k.tanggalMulai, tanggal),
+            terlewatBerturut = RencanaEskalasi.terlewatBerturutPada(k.semuaHari, tanggal),
+            terakhirDibuka = k.terakhirDibuka?.toEpochMilli(), hariRawan = k.hariRawan.rawan, kirim = kirim,
+            terkirimPada = null, idRelay = null, dilihatOleh = null, dilihatPada = null,
+        )
+        rencana.dilewati.forEach { dao.tambahEskalasi(rekam(it, kirim = false)) }
+        dao.tambahEskalasi(rekam(rencana.kirim, kirim = true))
+        pemicuSinkron.trySend(Unit)
+    }
+
+    /**
+     * Sends waiting ESKALASI and the daily summary to the relay, and picks up "Dilihat oleh …".
+     * Runs when woken and on a timer: every 30 s while an ESKALASI waits to be sent or seen,
+     * otherwise every 5 min. Only for a patient phone that is set up and has a relay address.
+     */
+    private suspend fun sinkronLoop() {
+        keadaan.filterNotNull().first()
+        while (true) {
+            val cepat = runCatching { sinkronPmo() }.getOrDefault(true)
+            withTimeoutOrNull(if (cepat) SINKRON_CEPAT_MS else SINKRON_MS) { pemicuSinkron.receive() }
+        }
+    }
+
+    private var ringkasanTerkirim: String? = null
+    private var ringkasanTerkirimPada = 0L
+
+    /** One sync round; true when it should run again soon. */
+    private suspend fun sinkronPmo(): Boolean {
+        val k = keadaan.value ?: return false
+        val s = hp()
+        if (!k.pengaturan.sudahMulai || s.mode != AppMode.WEARER || s.relayUrl.isBlank()) return false
+        // The relay shows the patient's nickname to the PMO (nothing else identifies them).
+        if (s.wearerName != k.pengaturan.namaPanggilan) pengaturanHp.setWearerName(k.pengaturan.namaPanggilan)
+        relay.ensureRegistered()
+        if (!relay.configured) return true
+
+        val a = aturan.aturan
+        for (e in dao.eskalasiMenunggu()) {
+            val id = relay.kirimEskalasi(JSONObject()
+                .put("deviceAddress", e.perangkat)
+                .put("seq", LocalDate.parse(e.tanggal).toEpochDay())
+                .put("type", "ESKALASI")
+                .put("occurredAt", e.dibuatPada)
+                .put("message", a.notifikasi.pmoEskalasi)
+                .put("demo", e.demo)
+                .put("ulangKirimMenit", a.eskalasi.ulangKirimMenit)
+                .put("maksUlang", a.eskalasi.maksUlang)
+                .put("detail", JSONObject()
+                    .put("tanggal", e.tanggal).put("hariKe", e.hariKe).put("terlewatBerturut", e.terlewatBerturut)
+                    .put("terakhirDibuka", e.terakhirDibuka ?: JSONObject.NULL).put("hariRawan", e.hariRawan)))
+            dao.eskalasiTerkirim(e.kunci, System.currentTimeMillis(), id)
+        }
+
+        // Read from storage, not k: an ESKALASI recorded a moment ago may not be in k yet. Only the
+        // last day's count, so one the PMO never opens doesn't keep the phone polling for good.
+        val menunggu = dao.jumlahBelumDilihat(System.currentTimeMillis() - 24 * 3600_000L) > 0
+        val ringkasan = ringkasanJson(k)
+        val teks = ringkasan.toString()
+        if (teks != ringkasanTerkirim || menunggu || System.currentTimeMillis() - ringkasanTerkirimPada >= SINKRON_MS) {
+            val status = relay.kirimStatusHarian(ringkasan)
+            ringkasanTerkirim = teks
+            ringkasanTerkirimPada = System.currentTimeMillis()
+            for (st in status) {
+                val oleh = st.by ?: continue
+                dao.eskalasiDilihat(st.deviceAddress, LocalDate.ofEpochDay(st.seq).toString(), oleh, st.at ?: System.currentTimeMillis())
+            }
+        }
+        return dao.jumlahBelumDilihat(System.currentTimeMillis() - 24 * 3600_000L) > 0 || dao.eskalasiMenunggu().isNotEmpty()
+    }
+
+    /** STATUS_HARIAN: the last [HARI_RINGKASAN] days for the PMO's row, the day number and the mode. */
+    private fun ringkasanJson(k: KeadaanPasien): JSONObject {
+        val hari = JSONArray()
+        k.semuaHari.takeLast(HARI_RINGKASAN).forEach { h ->
+            hari.put(JSONObject().put("tanggal", h.tanggal.toString()).put("hariKe", h.hariKe).put("status", h.status.name)
+                .put("waktu", h.waktuTercatat?.toEpochMilli() ?: JSONObject.NULL))
+        }
+        return JSONObject()
+            .put("tanggal", k.hariIniTanggal.toString())
+            .put("demo", k.pengaturan.demo.aktif)
+            .put("hariKe", k.hariKe)
+            .put("totalHari", k.totalHari)
+            .put("terakhirDibuka", k.terakhirDibuka?.toEpochMilli() ?: JSONObject.NULL)
+            .put("hariRawan", k.hariRawan.rawan)
+            .put("terlewatBerturut", k.terlewatBerturut)
+            .put("hari", hari)
+    }
+
+    /** "Kirim ulang ke relay sekarang", e.g. after the relay address changed. */
+    fun sinkronSekarang() { pemicuSinkron.trySend(Unit) }
+
     // --- Demo mode (PRD section 9) -----------------------------------------------------------
 
     suspend fun setDemoAktif(aktif: Boolean) = repo.setDemoAktif(aktif)
@@ -382,7 +530,9 @@ class PasienManager(
     suspend fun aturUlangDemo() {
         dao.hapusDemo()
         dao.hapusLogDemo()
+        dao.hapusEskalasiDemo()
         repo.aturUlangDemo()
+        pemicuSinkron.trySend(Unit)
     }
 
     /** "Berhenti ikut program": deletes every patient record on this phone. */
@@ -390,6 +540,7 @@ class PasienManager(
         dao.hapusSemuaKejadian()
         dao.hapusJamMinum()
         dao.hapusSemuaLog()
+        dao.hapusSemuaEskalasi()
         repo.hapusSemua()
         pengingat.hapusNotifikasi()
     }
@@ -398,6 +549,10 @@ class PasienManager(
         private const val FILE_ATURAN = "aturan_program.json"
         private const val FILE_CADANGAN = "aturan_bawaan.json"
         private const val DETAK_MS = 15_000L
+        private const val SINKRON_CEPAT_MS = 30_000L
+        private const val SINKRON_MS = 5 * 60_000L
+        /** Days in each STATUS_HARIAN: the PMO's 7-day row. */
+        private const val HARI_RINGKASAN = 7
         /** 5 days taken, then 2 missed (yesterday and the day before). */
         private val POLA_CONTOH = listOf(true, true, true, true, true, false, false)
         /** The `kapan` of the special-reminder messages in the rules file (PRD section 8). */

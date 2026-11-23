@@ -48,6 +48,7 @@ class PasienRepository(private val context: Context) {
         val persetujuan = longPreferencesKey("persetujuan_pada")
         val terdaftar = longPreferencesKey("terdaftar_pada")
         val demoDipantau = longPreferencesKey("demo_dipantau_sejak")
+        val demoSesi = stringPreferencesKey("demo_sesi")
     }
 
     val pengaturan: Flow<PengaturanPasien> = context.pasienStore.data.map { p ->
@@ -86,12 +87,25 @@ class PasienRepository(private val context: Context) {
 
     suspend fun setDemoDipantauSejak(waktu: Instant) = context.pasienStore.edit { it[Keys.demoDipantau] = waktu.toEpochMilli() }
 
+    /**
+     * Names this demo run on the relay, so a rehearsal after "Atur ulang demo" sends its ESKALASI
+     * again instead of being taken for a repeat of the last run. Made on first use.
+     */
+    suspend fun demoSesi(): String {
+        var sesi: String? = null
+        context.pasienStore.edit { p ->
+            sesi = p[Keys.demoSesi] ?: java.util.UUID.randomUUID().toString().take(8).also { p[Keys.demoSesi] = it }
+        }
+        return sesi!!
+    }
+
     /** Back to real data: demo off, no virtual clock, real start date. */
     suspend fun aturUlangDemo() = context.pasienStore.edit {
         it.remove(Keys.demoAktif)
         it.remove(Keys.demoGeserMs)
         it.remove(Keys.demoMulai)
         it.remove(Keys.demoDipantau)
+        it.remove(Keys.demoSesi)
     }
 
     /** "Berhenti ikut program": forget everything. */

@@ -21,6 +21,7 @@ import com.fallbracelet.R
 import com.fallbracelet.adherence.CatatanHari
 import com.fallbracelet.adherence.StatusDosis
 import com.fallbracelet.adherence.Tindakan
+import com.fallbracelet.data.EskalasiEntity
 import com.fallbracelet.data.LogPengingat
 import java.time.Instant
 import java.time.ZoneId
@@ -41,6 +42,7 @@ fun RiwayatScreen(vm: PasienViewModel) {
     val pesanPerTanggal = keadaan.logPengingat
         .filter { it.hasil == Tindakan.PESAN_KHUSUS.name }
         .groupBy { it.tanggal }
+    val kabarPerTanggal = keadaan.eskalasi.filter { it.kirim }.associateBy { it.tanggal }
     val baris = (keadaan.semuaHari.map { BarisRiwayat.Hari(it) } + keadaan.diLuarJadwal.map { BarisRiwayat.DiLuar(it) })
         .sortedByDescending { it.urut }
 
@@ -78,6 +80,8 @@ fun RiwayatScreen(vm: PasienViewModel) {
                                 color = WarnaPasien.Redup, style = MaterialTheme.typography.bodySmall,
                             )
                         }
+                        // ESKALASI: sent to the PMO, and who saw it
+                        kabarPerTanggal[b.c.tanggal.toString()]?.let { e -> Text(teksKabar(e), color = WarnaPasien.Redup, style = MaterialTheme.typography.bodySmall) }
                     }
                     is BarisRiwayat.DiLuar -> KartuPasien(latar = WarnaPasien.Latar) {
                         Text(stringResource(R.string.riwayat_di_luar), style = MaterialTheme.typography.bodyMedium)
@@ -86,6 +90,18 @@ fun RiwayatScreen(vm: PasienViewModel) {
                 }
             }
         }
+    }
+}
+
+/** "Kabar ke PMO: …" for one ESKALASI (Riwayat and the PMO tab). */
+@Composable
+fun teksKabar(e: EskalasiEntity): String {
+    val zona = ZoneId.systemDefault()
+    return when {
+        e.dilihatOleh != null && e.dilihatPada != null ->
+            stringResource(R.string.kabar_dilihat, e.dilihatOleh, Format.waktu(Instant.ofEpochMilli(e.dilihatPada), zona))
+        e.terkirimPada != null -> stringResource(R.string.kabar_terkirim, Format.waktu(Instant.ofEpochMilli(e.terkirimPada), zona))
+        else -> stringResource(R.string.kabar_menunggu)
     }
 }
 

@@ -17,6 +17,7 @@ import com.fallbracelet.relay.LinkedCaregiver
 import com.fallbracelet.relay.RelayException
 import kotlinx.coroutines.flow.combine
 import com.fallbracelet.manager
+import com.fallbracelet.pasien
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -104,6 +105,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun setRelayUrl(url: String) = viewModelScope.launch {
         m.settings.setRelay(url, RelayDiscovery.check(url.trim())?.relayId)
         m.syncNow()
+        getApplication<Application>().pasien.sinkronSekarang()
     }
 
     private val _finding = MutableStateFlow(false)
@@ -115,7 +117,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val found = m.finder.findNow()
         _finding.value = false
         _relayMessage.value = if (found == null) teks(R.string.atur_relay_tidak_ditemukan) else null
-        if (found != null) m.syncNow()
+        if (found != null) { m.syncNow(); getApplication<Application>().pasien.sinkronSekarang() }
     }
 
     private val _invite = MutableStateFlow<Invite?>(null)
