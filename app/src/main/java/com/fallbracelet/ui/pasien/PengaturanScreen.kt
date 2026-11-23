@@ -98,11 +98,29 @@ fun PengaturanScreen(vm: PasienViewModel, app: AppViewModel) {
                     Spacer(Modifier.height(8.dp))
                     OutlinedButton(onClick = vm::pasangkanUlang) { Text(stringResource(R.string.atur_lupakan)) }
                 } else {
-                    Text(stringResource(R.string.atur_kotak_tidak_ada))
+                    // The simulated ESP32: same protocol v2 as the real box will use
+                    val cfg by vm.configKotak.collectAsState()
+                    val jangkau by vm.kotakDalamJangkauan.collectAsState()
+                    val uji by vm.ujiKotakDiterima.collectAsState()
+                    Text(stringResource(R.string.atur_kotak_simulasi, cfg?.nama ?: "", cfg?.versi ?: com.fallbracelet.kotak.KotakProtokol.VERSI))
+                    Text(
+                        cfg?.jam?.let { j -> stringResource(R.string.atur_kotak_jam, "%02d.%02d".format(j, cfg!!.menit), cfg!!.durasiAlarmMenit) }
+                            ?: stringResource(R.string.atur_kotak_jam_belum),
+                        color = WarnaPasien.Redup,
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.atur_kotak_jangkauan), Modifier.weight(1f))
+                        Switch(checked = jangkau, onCheckedChange = vm::setKotakDalamJangkauan)
+                    }
+                    Text(stringResource(R.string.atur_kotak_jangkauan_isi), color = WarnaPasien.Redup, style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.height(8.dp))
-                    OutlinedButton(onClick = vm::pasangkanUlang) { Text(stringResource(R.string.atur_pasangkan)) }
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = vm::cariKotak) { Text(stringResource(R.string.atur_kotak_cari)) }
+                        OutlinedButton(onClick = vm::ujiKotak) { Text(stringResource(R.string.atur_kotak_uji)) }
+                        OutlinedButton(onClick = vm::pasangkanUlang) { Text(stringResource(R.string.atur_pasangkan)) }
+                    }
+                    uji?.let { Text(stringResource(R.string.atur_kotak_uji_diterima, Format.waktu(it, java.time.ZoneId.systemDefault())), color = WarnaPasien.Baik) }
                 }
-                Text(stringResource(R.string.atur_jam_ke_kotak), color = WarnaPasien.Redup, style = MaterialTheme.typography.bodySmall)
             }
 
             // Relay (P8: address / find relay); PMOs are on the PMO tab
@@ -164,7 +182,11 @@ fun PengaturanScreen(vm: PasienViewModel, app: AppViewModel) {
                         OutlinedButton(onClick = vm::isiRiwayatContoh) { Text(stringResource(R.string.atur_demo_riwayat)) }
                         OutlinedButton(onClick = vm::bukaKotakSimulasi) { Text(stringResource(R.string.kotak_buka_simulasi)) }
                     }
-                    Text(stringResource(R.string.atur_demo_alarm_kotak), color = WarnaPasien.Redup, style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(8.dp))
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = vm::picuAlarmKotak) { Text(stringResource(R.string.atur_demo_alarm_kotak)) }
+                        OutlinedButton(onClick = vm::hentikanAlarmKotak) { Text(stringResource(R.string.atur_demo_alarm_henti)) }
+                    }
                 }
                 Spacer(Modifier.height(8.dp))
                 OutlinedButton(onClick = vm::aturUlangDemo, modifier = Modifier.fillMaxWidth()) {

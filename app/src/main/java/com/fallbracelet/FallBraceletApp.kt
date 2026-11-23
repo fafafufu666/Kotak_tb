@@ -7,6 +7,7 @@ import com.fallbracelet.data.AppDatabase
 import com.fallbracelet.data.PasienDatabase
 import com.fallbracelet.data.PasienRepository
 import com.fallbracelet.data.SettingsRepository
+import com.fallbracelet.kotak.KotakManager
 import com.fallbracelet.pengingat.PengingatPasien
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +19,8 @@ class FallBraceletApp : Application() {
     lateinit var caregiver: CaregiverManager
         private set
     lateinit var pasien: PasienManager
+        private set
+    lateinit var kotak: KotakManager
         private set
 
     override fun onCreate() {
@@ -37,9 +40,11 @@ class FallBraceletApp : Application() {
             this, PasienDatabase.create(this), PasienRepository(this), scope, pengingat,
             relay = manager.relay, pengaturanHp = settings, hpFlow = manager.appSettings,
         )
+        kotak = KotakManager(this, pasien, scope, manager.appSettings)
         caregiver = CaregiverManager(this, settings, alerts, scope, manager.finder) { manager.appSettings.value }
         manager.start()
         caregiver.start()
+        kotak.mulai()
     }
 }
 
@@ -51,3 +56,6 @@ val android.content.Context.caregiver: CaregiverManager
 
 val android.content.Context.pasien: PasienManager
     get() = (applicationContext as FallBraceletApp).pasien
+
+val android.content.Context.kotak: KotakManager
+    get() = (applicationContext as FallBraceletApp).kotak
