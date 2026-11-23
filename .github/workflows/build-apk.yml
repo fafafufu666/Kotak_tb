@@ -1,0 +1,60 @@
+# Mem-build APK debug di setiap push, lalu mengunggahnya sebagai artifact "apk-debug".
+# Unduh dari tab Actions -> pilih run -> bagian Artifacts.
+name: Build APK debug
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Firebase (push ke HP PMO) opsional. Bila secret GOOGLE_SERVICES_JSON ada,
+      # isinya ditulis ke app/google-services.json (file ini tidak pernah masuk git).
+      - name: Siapkan google-services.json dari secret (bila ada)
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+            echo "Firebase: aktif (dari secret)"
+          else
+            echo "Firebase: tidak aktif (secret GOOGLE_SERVICES_JSON belum dibuat)"
+          fi
+
+      - name: Tes unit
+        run: ./gradlew :app:testDebugUnitTest --stacktrace
+
+      - name: Build APK debug
+        run: ./gradlew :app:assembleDebug --stacktrace
+
+      - name: Unggah APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-debug
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      - name: Unggah laporan tes (bila gagal)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: laporan-tes
+          path: app/build/reports/tests/
+          if-no-files-found: ignore

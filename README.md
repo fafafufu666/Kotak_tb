@@ -72,7 +72,8 @@ The relay also serves the same caregiver view as a web page at `http://<pi addre
 ## Build and run
 
 **App** (needs JDK 17+ and the Android SDK; `app/google-services.json` from the Firebase
-project, not in git):
+project is optional and not in git; without it there is no push). GitHub Actions builds the
+debug APK on every push (`.github/workflows/build-apk.yml`, artifact `apk-debug`):
 
 ```bash
 ./gradlew :app:assembleDebug

@@ -2,8 +2,15 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
-    // Reads app/google-services.json (kept out of git) for Firebase Cloud Messaging.
-    alias(libs.plugins.google.services)
+}
+
+// Firebase Cloud Messaging is optional: the Google Services plugin (which reads
+// app/google-services.json, kept out of git) is applied only when that file exists.
+// Without it the app builds and caregivers get alerts over the relay's live stream (SSE).
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+} else {
+    logger.warn("app/google-services.json not found: building without Firebase push.")
 }
 
 android {
@@ -11,7 +18,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.fallbracelet"
+        applicationId = "id.esgas.kotakobat"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
