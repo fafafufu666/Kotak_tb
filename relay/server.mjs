@@ -374,6 +374,8 @@ const routes = {
     const ringkasan = {
       tanggal: b.tanggal, demo: !!demo, hariKe: int(b.hariKe), totalHari: int(b.totalHari),
       terakhirDibuka: int(b.terakhirDibuka), hariRawan: !!b.hariRawan, terlewatBerturut: int(b.terlewatBerturut),
+      // Travel mode (P9): the last day it covers, or null when it is off.
+      bepergianSampai: isDate(b.bepergianSampai) ? b.bepergianSampai : null,
       at: now(),
     };
     db.exec('BEGIN');

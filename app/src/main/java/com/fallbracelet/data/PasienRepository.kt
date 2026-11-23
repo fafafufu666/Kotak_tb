@@ -7,6 +7,9 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.fallbracelet.adherence.PengaturanDemo
+import com.fallbracelet.adherence.PeriodeBepergian
+import org.json.JSONArray
+import org.json.JSONObject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Duration
@@ -25,6 +28,8 @@ data class PengaturanPasien(
     val persetujuanPada: Long? = null,
     /** When the patient finished P2 (real clock, epoch ms); null on installs from before it was kept. */
     val terdaftarPada: Long? = null,
+    /** Travel mode stretches (P9), past and current, real and demo. */
+    val bepergian: List<PeriodeBepergian> = emptyList(),
 ) {
     /**
      * From when doses count: setup time, or consent time on installs that set up before it
@@ -49,6 +54,7 @@ class PasienRepository(private val context: Context) {
         val terdaftar = longPreferencesKey("terdaftar_pada")
         val demoDipantau = longPreferencesKey("demo_dipantau_sejak")
         val demoSesi = stringPreferencesKey("demo_sesi")
+        val bepergian = stringPreferencesKey("bepergian")
     }
 
     val pengaturan: Flow<PengaturanPasien> = context.pasienStore.data.map { p ->
@@ -65,6 +71,7 @@ class PasienRepository(private val context: Context) {
             ),
             persetujuanPada = p[Keys.persetujuan],
             terdaftarPada = p[Keys.terdaftar],
+            bepergian = p[Keys.bepergian]?.let(::bacaBepergian).orEmpty(),
         )
     }
 
@@ -100,8 +107,27 @@ class PasienRepository(private val context: Context) {
         return sesi!!
     }
 
-    /** Back to real data: demo off, no virtual clock, real start date. */
+    suspend fun setBepergian(periode: List<PeriodeBepergian>) = context.pasienStore.edit { p ->
+        p[Keys.bepergian] = JSONArray().apply {
+            periode.forEach { put(JSONObject().put("mulai", it.mulai.toString()).put("sampai", it.sampai.toString()).put("demo", it.demo)) }
+        }.toString()
+    }
+
+    private fun bacaBepergian(teks: String): List<PeriodeBepergian> = runCatching {
+        val a = JSONArray(teks)
+        List(a.length()) { i ->
+            val o = a.getJSONObject(i)
+            PeriodeBepergian(LocalDate.parse(o.getString("mulai")), LocalDate.parse(o.getString("sampai")), o.optBoolean("demo"))
+        }
+    }.getOrDefault(emptyList())
+
+    /** Back to real data: demo off, no virtual clock, real start date, demo travel stretches gone. */
     suspend fun aturUlangDemo() = context.pasienStore.edit {
+        it[Keys.bepergian]?.let { teks -> it[Keys.bepergian] = JSONArray().apply {
+            bacaBepergian(teks).filter { p -> !p.demo }.forEach { p ->
+                put(JSONObject().put("mulai", p.mulai.toString()).put("sampai", p.sampai.toString()).put("demo", false))
+            }
+        }.toString() }
         it.remove(Keys.demoAktif)
         it.remove(Keys.demoGeserMs)
         it.remove(Keys.demoMulai)

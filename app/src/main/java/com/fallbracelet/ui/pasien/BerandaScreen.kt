@@ -128,6 +128,14 @@ fun BerandaScreen(vm: PasienViewModel, app: AppViewModel) {
                 }
             }
 
+            // Travel mode on (P9): manual confirmation is the proof these days
+            keadaan.bepergian?.let { bp ->
+                KartuPasien(latar = WarnaPasien.TealMuda, garis = WarnaPasien.Teal) {
+                    Text(stringResource(R.string.bepergian_beranda, Format.tanggal(bp.sampai)), style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.bepergian_beranda_isi), color = WarnaPasien.Redup)
+                }
+            }
+
             // Today's dose
             KartuPasien {
                 LabelBagian(stringResource(R.string.dosis_judul))

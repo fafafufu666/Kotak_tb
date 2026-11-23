@@ -55,6 +55,8 @@
   .alert { background: var(--bad-bg); border: 1px solid var(--bad); border-radius: 14px; padding: 14px; margin: 12px 0; }
   .alert b { color: var(--bad); font-size: 19px; display: block; }
   .alert button { background: var(--bad); border-color: var(--bad); color: #fff; }
+  .trip { background: var(--teal-bg); border: 1px solid var(--teal); border-radius: 14px; padding: 12px 14px; margin: 12px 0; }
+  .trip b { color: var(--teal); }
   .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin: 6px 0 4px; text-align: center; }
   .week .d { font-size: 13px; color: var(--muted); }
   .week .c { width: 38px; height: 38px; margin: 4px auto; border-radius: 50%; display: grid; place-items: center;
@@ -238,6 +240,9 @@ function onMessage(type, d) {
     case 'days':
       if (w) {
         const switched = !!w.ringkasan?.demo !== !!d.ringkasan.demo;
+        if (d.ringkasan.bepergianSampai && d.ringkasan.bepergianSampai !== w.ringkasan?.bepergianSampai) {
+          notify(w.name, `Mode bepergian aktif sampai ${tglPanjang(d.ringkasan.bepergianSampai)}.`, 'bepergian-' + w.id);
+        }
         w.ringkasan = d.ringkasan; w.days = d.days;
         if (switched) {
           // Demo ended (or started): the other mode's ESKALASI are gone from the relay.
@@ -373,6 +378,7 @@ function lalu(t) {
   return `${Math.round(s / 86400)} hari lalu`;
 }
 function terakhirDibuka(t) { return t ? `Terakhir dibuka: ${hariJam(t)}` : 'Kotak belum pernah dibuka'; }
+const tglPanjang = (s) => tgl(s).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' });
 function addDays(s, n) { const d = new Date(`${s}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
 
 function mingguHtml(w) {
@@ -387,7 +393,7 @@ function mingguHtml(w) {
       <div class="c ${cls}">${sym}</div><div class="d">${tgl(t).getDate()}</div></div>`);
   }
   return `<div class="week" role="list" aria-label="7 hari terakhir">${cells.join('')}</div>
-    <div class="muted small">✓ diminum · ✗ terlewat · ! terlambat · • belum · – belum dipantau</div>`;
+    <div class="muted small">✓ diminum (atau dikonfirmasi saat bepergian) · ✗ terlewat · ! terlambat · • belum · – belum dipantau</div>`;
 }
 
 function kabarHtml(e) {
@@ -414,6 +420,8 @@ function pasienHtml(w) {
       ${r.demo ? '<span class="pill demo">DEMO</span>' : ''}
       ${w.offline ? '<span class="pill bad">HP pasien terputus</span>' : w.lastHeartbeat ? '<span class="pill ok">HP pasien tersambung</span>' : ''}</div>
     <div class="muted small" style="margin-top:6px">${r.hariKe ? `Hari ${r.hariKe}${r.totalHari ? ` dari ${r.totalHari}` : ''}` : ''}${r.at ? ` · kabar terakhir ${lalu(r.at)}` : ''}</div>
+    ${r.bepergianSampai ? `<div class="trip"><b>Mode bepergian sampai ${esc(tglPanjang(r.bepergianSampai))}</b>
+      <div class="small">Pasien bepergian tanpa kotak dan mengonfirmasi sendiri setiap kali minum obat.</div></div>` : ''}
     ${atas ? `<div class="alert"><b>${ad.terlewatBerturut ? `${ad.terlewatBerturut} dosis terlewat berturut-turut` : 'Dosis terlewat'}</b>
       <div>${esc(terakhirDibuka(ad.terakhirDibuka))}</div>
       ${terbuka.length > 1 ? `<div class="small">${terbuka.length - 1} kabar lain belum dilihat</div>` : ''}

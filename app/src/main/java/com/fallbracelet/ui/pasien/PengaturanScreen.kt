@@ -21,6 +21,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -146,6 +147,35 @@ fun PengaturanScreen(vm: PasienViewModel, app: AppViewModel) {
                     }
                 }
                 pesanRelay?.let { Text(it, color = WarnaPasien.Buruk) }
+            }
+
+            // Travel mode (P9)
+            KartuPasien {
+                LabelBagian(stringResource(R.string.bepergian_judul))
+                val bp = keadaan.bepergian
+                if (bp != null) {
+                    Text(
+                        stringResource(R.string.bepergian_aktif_sampai, Format.tanggal(bp.sampai), keadaan.let {
+                            com.fallbracelet.adherence.ModeBepergian.sisaHari(it.hariIniTanggal, it.periodeBepergian)
+                        }),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(onClick = vm::matikanBepergian) { Text(stringResource(R.string.bepergian_matikan)) }
+                } else {
+                    val maks = vm.aturan.aturan.modeBepergian.maksHari
+                    var lama by rememberSaveable { mutableIntStateOf(minOf(3, maks)) }
+                    Text(stringResource(R.string.bepergian_isi), color = WarnaPasien.Redup, style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedButton(onClick = { lama = (lama - 1).coerceAtLeast(1) }, enabled = lama > 1) { Text("−") }
+                        Text(stringResource(R.string.bepergian_lama, lama), Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.titleMedium)
+                        OutlinedButton(onClick = { lama = (lama + 1).coerceAtMost(maks) }, enabled = lama < maks) { Text("+") }
+                        Spacer(Modifier.width(16.dp))
+                        Button(onClick = { vm.nyalakanBepergian(lama) }) { Text(stringResource(R.string.bepergian_nyalakan)) }
+                    }
+                    Text(stringResource(R.string.bepergian_maks, maks), color = WarnaPasien.Redup, style = MaterialTheme.typography.bodySmall)
+                }
             }
 
             // Demo mode (PRD section 9)

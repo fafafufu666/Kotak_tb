@@ -1,8 +1,8 @@
 # Status pengembangan
 
 ## 1. Tahap saat ini
-Tahap 4 (PRD bagian 11): protokol v2 kotak. Atas permintaanmu, kotak memakai ESP32 tiruan di dalam aplikasi dulu; uji dengan ESP32 asli menyusul.
-Posisi: Tahap 0 sampai 3 sudah di `main`. Tahap 4 di cabang `tahap-4`, diuji di tablet.
+Tahap 5 (firmware kotak, cabang `tahap-5`) dan Tahap 6 bagian P9 mode bepergian (cabang `tahap-6`, dibuat dari `tahap-5`).
+Posisi: Tahap 0 sampai 4 sudah di `main`. Firmware terkompilasi, belum dijalankan di hardware. Mode bepergian diuji di tablet. Perapian UI sesuai mockup (sisa Tahap 6) menunggu mockup.
 
 ## 2. Sudah jadi dan sudah diuji
 - Tahap 0 (di `main`): build APK lewat GitHub Actions, `applicationId` `id.esgas.kotakobat`, nama `[NAMA APLIKASI]`. APK terpasang dan terbuka di HP Abyan.
@@ -31,6 +31,9 @@ Posisi: Tahap 0 sampai 3 sudah di `main`. Tahap 4 di cabang `tahap-4`, diuji di 
   - skenario 3: kotak di luar jangkauan, dibuka pukul 07.07 (jam kotak), jam aplikasi dimajukan ke 08.07, kotak didekatkan lagi → kejadian tersimpan 2,3 detik kemudian dengan waktu aslinya 07.07, Riwayat "dari kotak, 07.07".
 
 - Tahap 5 (firmware kotak, `firmware/kotak_obat`): dikompilasi untuk ESP32-C3 (esp32 core 3.3.12, NimBLE-Arduino 2.5.2) tanpa peringatan; 45% flash, 7% RAM. Semua pin dan polaritas di `config.h`, bisa juga diubah lewat `-D` saat kompilasi (dicoba: tutup di GPIO5, tanpa LED, buzzer di GPIO6, sensor terbalik, tanpa bonding → tetap terkompilasi).
+
+- Tahap 6, P9 mode bepergian (build lokal: 126 tes lulus, 6 baru; tes relay lulus): kartu di Pengaturan (pilih 1 sampai `maks_hari` hari, nyalakan/matikan), pemberitahuan di Beranda, hari dengan konfirmasi manual tercatat BEPERGIAN, eskalasi mengikuti `mode_bepergian.eskalasi_aktif`, mati sendiri. Diuji di tablet (mode demo) 24-11-2026 01.00–01.10 WIB: nyalakan 3 hari → "Aktif sampai Kamis, 26 November 2026 (sisa 3 hari)", relay langsung menerima tanggal akhir, halaman PMO menampilkan "Mode bepergian sampai Kamis, 26 Nov"; "Saya sudah minum obat" → "Bepergian (dikonfirmasi)" dan ✓ di deret PMO; dimajukan ke Jumat → mode mati sendiri, tanggal akhir di relay kosong, Selasa tetap BEPERGIAN.
+- Perbaikan dari uji itu: deret 7 hari PMO baru diperbarui tiap 5 menit sesudah dosis diminum; sekarang ringkasan dikirim begitu ada hari yang berubah.
 
 ## 3. Sudah dibuat tetapi belum diuji
 - Semua layar dan perilaku 2b belum pernah dijalankan di HP (tidak ada emulator di cloud): P1 Persetujuan, P5 Pengingat khusus (layar penuh, tombol, catatan tombol di Riwayat), notifikasi jam minum, terlambat, dan pengingat ulang lewat alarm Android, P7 PMO berbahasa Indonesia, kartu Relay di Pengaturan, peringatan izin di Beranda.
@@ -80,6 +83,12 @@ Asumsi Claude untuk "Belum dipantau":
 - Dosis yang jendelanya masih terbuka saat P2 tetap dihitung. Catatan kotak atau konfirmasi sebelum batas tetap dihitung diminum.
 - Di mode demo, "Lompat ke hari" memulai hitungan dari jam virtual saat itu, dan "Isi riwayat contoh" memundurkannya ke hari contoh tertua agar 2 hari terlewat contoh tetap terhitung.
 
+Asumsi Claude di Tahap 6 (P9):
+- Hari pertama mode bepergian adalah hari dinyalakan; lama dihitung termasuk hari itu.
+- Mematikan lebih awal: hari-hari yang sudah lewat tetap BEPERGIAN; bila dimatikan di hari yang sama ia dinyalakan, periodenya dihapus.
+- Pengingat tetap berbunyi selama bepergian (obat dibawa); yang berubah hanya status dan aturan eskalasi.
+- PMO diberi tahu lewat kartu di halaman PMO (dan notifikasi browser bila tersedia), bukan lewat ESKALASI.
+
 Asumsi Claude di Tahap 4:
 - UUID layanan kotak baru (`5b0a000X-…`), berbeda dari gelang, agar aplikasi tidak tertukar dengan gelang saudara.
 - CONFIG memuat juga `jendela_awal_menit` (1 byte, nama perangkat jadi 19 byte): bila tutup sudah dibuka dalam jendela dosis, kotak tidak berbunyi hari itu. Tanpa ini kotak tetap berbunyi pukul 07.00 walau dosis sudah tercatat pukul 06.58.
@@ -120,4 +129,4 @@ Asumsi Claude di Tahap 2b:
 - Lama pengobatan dan fase di konfigurasi masih [CONTOH]; perlu dicek ke PNPK TB [CEK].
 
 ## 8. Terakhir diperbarui
-24-11-2026, 00.50 WIB
+24-11-2026, 01.15 WIB

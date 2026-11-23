@@ -156,6 +156,17 @@ try {
   assert.equal(seen.find((e) => e.id === esk2.id).ackedBy, 'Ani', 'patient learns who saw it');
   assert.equal(seen.find((e) => e.id === esk.id).ackedBy, null);
 
+  // Travel mode: the PMO hears it is on, until when, and that it is off again.
+  const ps3 = await listen(pmo.token);
+  await wait(200);
+  await api('POST', '/v1/status-harian', p.token, { tanggal: '2026-11-24', demo: true, hari, bepergianSampai: '2026-11-27' });
+  assert.equal((await api('GET', '/v1/dashboard', pmo.token)).json.wearers[0].ringkasan.bepergianSampai, '2026-11-27');
+  await api('POST', '/v1/status-harian', p.token, { tanggal: '2026-11-24', demo: true, hari, bepergianSampai: 'bukan tanggal' });
+  assert.equal((await api('GET', '/v1/dashboard', pmo.token)).json.wearers[0].ringkasan.bepergianSampai, null);
+  await wait(200);
+  assert.deepEqual(ps3.got.filter((m) => m.type === 'days').map((m) => m.data.ringkasan.bepergianSampai), ['2026-11-27', null]);
+  ps3.close();
+
   // Back to real data: the PMO sees the real days, not the demo ones.
   await api('POST', '/v1/status-harian', p.token, { tanggal: '2026-11-24', demo: false, hari: [{ tanggal: '2026-11-24', hariKe: 1, status: 'BELUM' }] });
   const real = (await api('GET', '/v1/dashboard', pmo.token)).json.wearers[0];

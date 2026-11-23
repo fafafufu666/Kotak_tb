@@ -77,6 +77,15 @@
     <string name="status_kotak">Sudah diminum (kotak)</string>
     <string name="status_manual">Sudah dikonfirmasi</string>
     <string name="status_bepergian">Bepergian (dikonfirmasi)</string>
+    <string name="bepergian_judul">Mode bepergian</string>
+    <string name="bepergian_isi">Saat bepergian tanpa kotak, tekan \"Saya sudah minum obat\" setiap kali minum. PMO diberi tahu bahwa mode ini aktif. Mati sendiri setelah jumlah hari yang dipilih.</string>
+    <string name="bepergian_lama">%1$d hari</string>
+    <string name="bepergian_maks">Paling lama %1$d hari.</string>
+    <string name="bepergian_nyalakan">Nyalakan</string>
+    <string name="bepergian_matikan">Matikan mode bepergian</string>
+    <string name="bepergian_aktif_sampai">Aktif sampai %1$s (sisa %2$d hari)</string>
+    <string name="bepergian_beranda">Mode bepergian aktif sampai %1$s</string>
+    <string name="bepergian_beranda_isi">Tekan \"Saya sudah minum obat\" setiap kali minum.</string>
     <string name="status_tanpa_data">Belum dipantau</string>
 
     <!-- Hari singkat, Senin dulu -->

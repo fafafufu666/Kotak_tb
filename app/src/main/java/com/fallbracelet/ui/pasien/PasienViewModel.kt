@@ -50,6 +50,9 @@ class PasienViewModel(app: Application) : AndroidViewModel(app) {
         p.repo.setKotakDilewati(false)
     }
 
+    fun nyalakanBepergian(lamaHari: Int) = viewModelScope.launch { p.nyalakanBepergian(lamaHari) }
+    fun matikanBepergian() = viewModelScope.launch { p.matikanBepergian() }
+
     fun setDemoAktif(aktif: Boolean) = viewModelScope.launch { p.setDemoAktif(aktif) }
     fun lompatKeHari(hariKe: Int) = viewModelScope.launch { p.lompatKeHari(hariKe) }
     fun majukanJam(menit: Long) = viewModelScope.launch { p.majukanJam(Duration.ofMinutes(menit)) }
