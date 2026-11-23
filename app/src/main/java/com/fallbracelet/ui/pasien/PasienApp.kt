@@ -16,8 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
@@ -49,8 +47,6 @@ import androidx.compose.ui.unit.dp
 import com.fallbracelet.R
 import com.fallbracelet.data.AppMode
 import com.fallbracelet.ui.AppViewModel
-import com.fallbracelet.ui.CaregiversCard
-import com.fallbracelet.ui.theme.FallBraceletTheme
 
 private enum class TabPasien(val judul: Int, val ikon: ImageVector) {
     Beranda(R.string.tab_beranda, Icons.Filled.Home),
@@ -60,7 +56,7 @@ private enum class TabPasien(val judul: Int, val ikon: ImageVector) {
 }
 
 /**
- * Patient mode (PRD 6.1): P2 start → P3 pair (can be skipped) → the four tabs.
+ * Patient mode (PRD 6.1): P1 consent → P2 start → P3 pair (can be skipped) → the four tabs.
  * Shown when the phone is in [AppMode.WEARER] mode.
  */
 @Composable
@@ -70,6 +66,7 @@ fun PasienApp(vm: PasienViewModel, app: AppViewModel, enableBluetooth: () -> Uni
     val p = pengaturan ?: return
     TemaPasien {
         when {
+            p.persetujuanPada == null -> PersetujuanScreen(vm)
             !p.sudahMulai -> MulaiScreen(vm)
             settings.deviceAddress == null && !p.kotakDilewati -> PasangkanScreen(app, vm, enableBluetooth)
             else -> TabUtama(vm, app, demo = p.demo.aktif)
@@ -115,17 +112,6 @@ private fun PitaDemo() {
         contentAlignment = Alignment.Center,
     ) {
         Text(stringResource(R.string.demo_penanda), color = Color.White, style = MaterialTheme.typography.labelLarge)
-    }
-}
-
-/** P7, for now: the existing invite code and caregiver list. Reworded and restyled in part 2b. */
-@Composable
-private fun PmoScreen(app: AppViewModel) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        JudulLayar(stringResource(R.string.pmo_judul), stringResource(R.string.pmo_sub))
-        FallBraceletTheme {
-            Column(Modifier.padding(horizontal = 16.dp)) { CaregiversCard(app) }
-        }
     }
 }
 

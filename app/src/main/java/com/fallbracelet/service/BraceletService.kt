@@ -92,5 +92,7 @@ class BraceletService : LifecycleService() {
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         context.manager.retryConnect()
+        // Alarms are lost on reboot; the reminder check sets the next one again.
+        com.fallbracelet.pengingat.periksaDiLatar(context, goAsync())
     }
 }

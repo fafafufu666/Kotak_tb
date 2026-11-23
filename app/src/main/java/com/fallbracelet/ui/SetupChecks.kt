@@ -66,7 +66,7 @@ fun setupProblems(context: Context, relay: RelayHealth?): List<SetupProblem> = b
     }
 }
 
-private fun openFullScreenSettings(context: Context) {
+internal fun openFullScreenSettings(context: Context) {
     runCatching {
         context.startActivity(Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, Uri.parse("package:${context.packageName}")))
     }.onFailure { openAppSettings(context) }
@@ -81,17 +81,17 @@ private fun hasInternet(context: Context): Boolean {
 
 // The whole point of the app is to run in the background, which is the permitted use case.
 @SuppressLint("BatteryLife")
-private fun requestBatteryExemption(context: Context) {
+internal fun requestBatteryExemption(context: Context) {
     val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:${context.packageName}"))
     runCatching { context.startActivity(intent) }
         .onFailure { context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) }
 }
 
-private fun openNotificationSettings(context: Context) {
+internal fun openNotificationSettings(context: Context) {
     context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName))
 }
 
-private fun openAppSettings(context: Context) {
+internal fun openAppSettings(context: Context) {
     context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")))
 }
 

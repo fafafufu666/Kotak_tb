@@ -19,7 +19,13 @@ enum class StatusDosis {
     /** The patient pressed "I've taken my medicine" in the window. */
     DIKONFIRMASI_MANUAL,
     /** Travel mode was on and the patient confirmed by hand in the window. */
-    BEPERGIAN;
+    BEPERGIAN,
+    /**
+     * The window closed before the app was in use (before setup), with nothing recorded:
+     * unknown, not missed. Counts toward neither the POLA rule nor escalation, and breaks a
+     * run of missed days.
+     */
+    TANPA_DATA;
 
     /** The dose counts as taken. */
     val tercatat: Boolean get() = this == DIMINUM_KOTAK || this == DIKONFIRMASI_MANUAL || this == BEPERGIAN
@@ -97,6 +103,8 @@ object LogikaKepatuhan {
      * Status of one day's dose at [sekarang]. Only box openings and confirmations at or before
      * [sekarang] and inside the window count; the first one counts. A box opening wins over a
      * manual confirmation. [bepergianAktif] is whether travel mode was on for that day.
+     * A dose with nothing recorded whose window closed before [dipantauSejak] (when the app
+     * came into use) is TANPA_DATA instead of TERLEWAT; null counts every day.
      */
     fun statusDosis(
         jadwal: JadwalDosis,
@@ -104,6 +112,7 @@ object LogikaKepatuhan {
         pembukaanKotak: Collection<Instant>,
         konfirmasiManual: Collection<Instant>,
         bepergianAktif: Boolean,
+        dipantauSejak: Instant? = null,
     ): HasilStatusDosis {
         fun pertamaDalamJendela(daftar: Collection<Instant>) =
             daftar.filter { !it.isAfter(sekarang) && jadwal.berisi(it) }.minOrNull()
@@ -114,6 +123,8 @@ object LogikaKepatuhan {
             return HasilStatusDosis(status, it)
         }
         val status = when {
+            sekarang.isAfter(jadwal.terlewatMulai) && dipantauSejak != null && jadwal.terlewatMulai.isBefore(dipantauSejak) ->
+                StatusDosis.TANPA_DATA
             sekarang.isAfter(jadwal.terlewatMulai) -> StatusDosis.TERLEWAT
             sekarang.isAfter(jadwal.terlambatMulai) -> StatusDosis.TERLAMBAT
             else -> StatusDosis.BELUM

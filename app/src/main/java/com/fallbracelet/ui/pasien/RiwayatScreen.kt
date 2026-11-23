@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import com.fallbracelet.R
 import com.fallbracelet.adherence.CatatanHari
 import com.fallbracelet.adherence.StatusDosis
+import com.fallbracelet.adherence.Tindakan
+import com.fallbracelet.data.LogPengingat
 import java.time.Instant
 import java.time.ZoneId
 
@@ -36,6 +38,9 @@ fun RiwayatScreen(vm: PasienViewModel) {
     val k by vm.keadaan.collectAsState()
     val keadaan = k ?: return
     val zona = ZoneId.systemDefault()
+    val pesanPerTanggal = keadaan.logPengingat
+        .filter { it.hasil == Tindakan.PESAN_KHUSUS.name }
+        .groupBy { it.tanggal }
     val baris = (keadaan.semuaHari.map { BarisRiwayat.Hari(it) } + keadaan.diLuarJadwal.map { BarisRiwayat.DiLuar(it) })
         .sortedByDescending { it.urut }
 
@@ -65,6 +70,14 @@ fun RiwayatScreen(vm: PasienViewModel) {
                             val (fg, bg) = warnaStatus(b.c.status)
                             Lencana(teksStatus(b.c.status), fg, bg)
                         }
+                        // P5: when the special reminder showed and what was pressed
+                        pesanPerTanggal[b.c.tanggal.toString()].orEmpty().forEach { l ->
+                            val jam = Format.jam(Instant.ofEpochMilli(l.ditanganiPada ?: l.waktuPemicu), zona)
+                            Text(
+                                stringResource(R.string.riwayat_pesan, jam, teksAksi(l.aksi)),
+                                color = WarnaPasien.Redup, style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
                     }
                     is BarisRiwayat.DiLuar -> KartuPasien(latar = WarnaPasien.Latar) {
                         Text(stringResource(R.string.riwayat_di_luar), style = MaterialTheme.typography.bodyMedium)
@@ -75,3 +88,13 @@ fun RiwayatScreen(vm: PasienViewModel) {
         }
     }
 }
+
+@Composable
+private fun teksAksi(aksi: String?): String = stringResource(
+    when (aksi) {
+        LogPengingat.AKSI_SUDAH_MINUM -> R.string.aksi_sudah_minum
+        LogPengingat.AKSI_TUNDA -> R.string.aksi_tunda
+        LogPengingat.AKSI_DITUTUP -> R.string.aksi_ditutup
+        else -> R.string.aksi_belum
+    }
+)

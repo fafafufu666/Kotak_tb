@@ -47,6 +47,8 @@ fun BerandaScreen(vm: PasienViewModel, app: AppViewModel) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         JudulLayar(stringResource(R.string.app_name), stringResource(R.string.beranda_halo, keadaan.pengaturan.namaPanggilan))
         Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            PeringatanIzin(adaKotak = settings.deviceAddress != null)
+
             // Progress ring
             KartuPasien {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -134,6 +136,9 @@ fun BerandaScreen(vm: PasienViewModel, app: AppViewModel) {
                     hari.waktuTercatat?.let {
                         Text(stringResource(R.string.dosis_tercatat_pada, Format.jam(it, zona)), color = WarnaPasien.Redup)
                     }
+                    if (hari.status == com.fallbracelet.adherence.StatusDosis.TANPA_DATA) {
+                        Text(stringResource(R.string.dosis_tanpa_data), color = WarnaPasien.Redup, style = MaterialTheme.typography.bodySmall)
+                    }
                     if (hari.status.masihBerjalan) {
                         Spacer(Modifier.height(12.dp))
                         Button(onClick = vm::konfirmasiManual, modifier = Modifier.fillMaxWidth().height(56.dp)) {
@@ -163,6 +168,7 @@ fun BerandaScreen(vm: PasienViewModel, app: AppViewModel) {
                                         catatan == null -> ""
                                         catatan.status.tercatat -> "✓"
                                         catatan.status == com.fallbracelet.adherence.StatusDosis.TERLEWAT -> "✗"
+                                        catatan.status == com.fallbracelet.adherence.StatusDosis.TANPA_DATA -> "–"
                                         else -> "•"
                                     },
                                     color = fg, style = MaterialTheme.typography.titleMedium,

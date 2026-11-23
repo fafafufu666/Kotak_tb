@@ -10,6 +10,7 @@ import com.fallbracelet.adherence.PengaturanDemo
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 
 /** The patient's own settings (PRD P2, P8, section 9). `jam_minum` lives in [PasienDatabase]. */
@@ -20,7 +21,17 @@ data class PengaturanPasien(
     /** The patient chose to go on without pairing a box (the simulated box is used). */
     val kotakDilewati: Boolean = false,
     val demo: PengaturanDemo = PengaturanDemo(),
+    /** When the patient agreed on P1 Persetujuan, epoch ms; null = not yet. */
+    val persetujuanPada: Long? = null,
+    /** When the patient finished P2 (real clock, epoch ms); null on installs from before it was kept. */
+    val terdaftarPada: Long? = null,
 ) {
+    /**
+     * From when doses count: setup time, or consent time on installs that set up before it
+     * was kept. Doses that closed earlier are unknown (TANPA_DATA), not missed.
+     */
+    val dipantauSejak: Instant? get() = (terdaftarPada ?: persetujuanPada)?.let(Instant::ofEpochMilli)
+
     val sudahMulai: Boolean get() = namaPanggilan.isNotBlank() && tanggalMulai != null
 }
 
@@ -34,6 +45,9 @@ class PasienRepository(private val context: Context) {
         val demoAktif = booleanPreferencesKey("demo_aktif")
         val demoGeserMs = longPreferencesKey("demo_geser_ms")
         val demoMulai = stringPreferencesKey("demo_tanggal_mulai")
+        val persetujuan = longPreferencesKey("persetujuan_pada")
+        val terdaftar = longPreferencesKey("terdaftar_pada")
+        val demoDipantau = longPreferencesKey("demo_dipantau_sejak")
     }
 
     val pengaturan: Flow<PengaturanPasien> = context.pasienStore.data.map { p ->
@@ -45,13 +59,19 @@ class PasienRepository(private val context: Context) {
                 aktif = p[Keys.demoAktif] ?: false,
                 geserJam = Duration.ofMillis(p[Keys.demoGeserMs] ?: 0),
                 tanggalMulai = p[Keys.demoMulai]?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
+                dipantauSejak = p[Keys.demoDipantau]?.let(Instant::ofEpochMilli),
             ),
+            persetujuanPada = p[Keys.persetujuan],
+            terdaftarPada = p[Keys.terdaftar],
         )
     }
 
-    suspend fun mulai(nama: String, tanggalMulai: LocalDate) = context.pasienStore.edit {
+    suspend fun setuju(pada: Long) = context.pasienStore.edit { it[Keys.persetujuan] = pada }
+
+    suspend fun mulai(nama: String, tanggalMulai: LocalDate, pada: Long) = context.pasienStore.edit {
         it[Keys.nama] = nama.trim()
         it[Keys.mulai] = tanggalMulai.toString()
+        it[Keys.terdaftar] = pada
     }
 
     suspend fun setNama(nama: String) = context.pasienStore.edit { it[Keys.nama] = nama.trim() }
@@ -64,11 +84,14 @@ class PasienRepository(private val context: Context) {
 
     suspend fun setDemoTanggalMulai(tanggal: LocalDate) = context.pasienStore.edit { it[Keys.demoMulai] = tanggal.toString() }
 
+    suspend fun setDemoDipantauSejak(waktu: Instant) = context.pasienStore.edit { it[Keys.demoDipantau] = waktu.toEpochMilli() }
+
     /** Back to real data: demo off, no virtual clock, real start date. */
     suspend fun aturUlangDemo() = context.pasienStore.edit {
         it.remove(Keys.demoAktif)
         it.remove(Keys.demoGeserMs)
         it.remove(Keys.demoMulai)
+        it.remove(Keys.demoDipantau)
     }
 
     /** "Berhenti ikut program": forget everything. */

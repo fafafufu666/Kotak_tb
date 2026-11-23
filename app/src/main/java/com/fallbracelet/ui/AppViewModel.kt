@@ -9,6 +9,8 @@ import com.fallbracelet.ble.Command
 import com.fallbracelet.ble.FoundDevice
 import com.fallbracelet.data.AppMode
 import com.fallbracelet.caregiver
+import com.fallbracelet.R
+import com.fallbracelet.relay.GalatRelay
 import com.fallbracelet.relay.Invite
 import com.fallbracelet.relay.RelayDiscovery
 import com.fallbracelet.relay.LinkedCaregiver
@@ -112,7 +114,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _finding.value = true
         val found = m.finder.findNow()
         _finding.value = false
-        _relayMessage.value = if (found == null) "No relay found on this WiFi. Is the Pi on the same network?" else null
+        _relayMessage.value = if (found == null) teks(R.string.atur_relay_tidak_ditemukan) else null
         if (found != null) m.syncNow()
     }
 
@@ -120,13 +122,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val invite: StateFlow<Invite?> = _invite.asStateFlow()
     private val _caregivers = MutableStateFlow<List<LinkedCaregiver>>(emptyList())
     val caregivers: StateFlow<List<LinkedCaregiver>> = _caregivers.asStateFlow()
+    /** Outcome of finding the relay (Pengaturan, Relay card). */
     private val _relayMessage = MutableStateFlow<String?>(null)
     val relayMessage: StateFlow<String?> = _relayMessage.asStateFlow()
 
+    /** Outcome of an invite or a PMO removal (PMO tab). */
+    private val _pmoMessage = MutableStateFlow<String?>(null)
+    val pmoMessage: StateFlow<String?> = _pmoMessage.asStateFlow()
+
     fun newInvite() = viewModelScope.launch {
         runCatching { m.relay.ensureRegistered(); m.relay.invite() }
-            .onSuccess { _invite.value = it; _relayMessage.value = null }
-            .onFailure { _relayMessage.value = "Couldn't make an invite: ${it.message}" }
+            .onSuccess { _invite.value = it; _pmoMessage.value = null }
+            .onFailure { _pmoMessage.value = pesanGalat(R.string.pmo_gagal_undangan, it) }
     }
 
     fun refreshCaregivers() = viewModelScope.launch {
@@ -135,9 +142,26 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun removeCaregiver(id: Long) = viewModelScope.launch {
-        runCatching { m.relay.removeCaregiver(id) }.onFailure { _relayMessage.value = "Couldn't remove: ${it.message}" }
+        runCatching { m.relay.removeCaregiver(id) }
+            .onSuccess { _pmoMessage.value = null }
+            .onFailure { _pmoMessage.value = pesanGalat(R.string.pmo_gagal_hapus, it) }
         refreshCaregivers()
         m.syncNow()
+    }
+
+    private fun teks(id: Int, vararg isi: Any): String = getApplication<Application>().getString(id, *isi)
+
+    /** "[what failed] [why, in plain words]"; the exception text itself is not shown. */
+    private fun pesanGalat(apa: Int, e: Throwable): String {
+        val status = (e as? RelayException)?.status ?: 0
+        val sebab = when (GalatRelay.dari(e)) {
+            GalatRelay.TIDAK_TERHUBUNG -> teks(R.string.relay_galat_tidak_terhubung, settings.value.relayUrl)
+            GalatRelay.BEDA_JARINGAN -> teks(R.string.relay_galat_beda_jaringan)
+            GalatRelay.RELAY_BERMASALAH -> teks(R.string.relay_galat_bermasalah, status)
+            GalatRelay.DITOLAK -> teks(R.string.relay_galat_ditolak, status)
+            GalatRelay.LAIN -> teks(R.string.relay_galat_lain)
+        }
+        return teks(apa) + " " + sebab
     }
 
     // --- Relay, caregiver side -----------------------------------------------------------

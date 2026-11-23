@@ -80,6 +80,9 @@ fun PengaturanScreen(vm: PasienViewModel, app: AppViewModel) {
                 Text(keadaan.pengaturan.namaPanggilan, style = MaterialTheme.typography.titleMedium)
                 keadaan.pengaturan.tanggalMulai?.let { Text(stringResource(R.string.atur_tanggal_mulai, Format.tanggal(it)), color = WarnaPasien.Redup) }
                 keadaan.jamMinum?.let { Text(stringResource(R.string.atur_jam_minum, Format.jam(it)), color = WarnaPasien.Redup) }
+                keadaan.pengaturan.persetujuanPada?.let {
+                    Text(stringResource(R.string.atur_disetujui, Format.waktu(java.time.Instant.ofEpochMilli(it), zona)), color = WarnaPasien.Redup)
+                }
                 Spacer(Modifier.height(8.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { ubahJam = true }) { Text(stringResource(R.string.atur_ubah_jam)) }
@@ -100,6 +103,31 @@ fun PengaturanScreen(vm: PasienViewModel, app: AppViewModel) {
                     OutlinedButton(onClick = vm::pasangkanUlang) { Text(stringResource(R.string.atur_pasangkan)) }
                 }
                 Text(stringResource(R.string.atur_jam_ke_kotak), color = WarnaPasien.Redup, style = MaterialTheme.typography.bodySmall)
+            }
+
+            // Relay (P8: address / find relay); PMOs are on the PMO tab
+            KartuPasien {
+                LabelBagian(stringResource(R.string.atur_relay))
+                Text(stringResource(R.string.atur_relay_isi), color = WarnaPasien.Redup, style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(8.dp))
+                var url by remember(settings.relayUrl) { mutableStateOf(settings.relayUrl) }
+                val mencari by app.finding.collectAsState()
+                val pesanRelay by app.relayMessage.collectAsState()
+                OutlinedTextField(
+                    value = url, onValueChange = { url = it },
+                    label = { Text(stringResource(R.string.atur_relay_alamat)) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                )
+                Spacer(Modifier.height(8.dp))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = app::findRelay, enabled = !mencari) {
+                        Text(stringResource(if (mencari) R.string.atur_relay_mencari else R.string.atur_relay_cari))
+                    }
+                    if (url.trim() != settings.relayUrl) {
+                        OutlinedButton(onClick = { app.setRelayUrl(url) }) { Text(stringResource(R.string.simpan)) }
+                    }
+                }
+                pesanRelay?.let { Text(it, color = WarnaPasien.Buruk) }
             }
 
             // Demo mode (PRD section 9)

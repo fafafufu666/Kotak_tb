@@ -25,6 +25,8 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Reminders at the exact dose time (Android 12+ asks the user; see the warning banner). -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <application
         android:name=".FallBraceletApp"
@@ -74,6 +76,19 @@
 
         <receiver
             android:name=".caregiver.AckReceiver"
+            android:exported="false" />
+
+        <!-- P5 special reminder, shown over the lock screen -->
+        <activity
+            android:name=".ui.pasien.PengingatKhususActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:excludeFromRecents="true" />
+
+        <receiver
+            android:name=".pengingat.PengingatReceiver"
             android:exported="false" />
 
         <receiver

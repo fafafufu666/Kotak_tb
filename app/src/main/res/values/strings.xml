@@ -60,6 +60,7 @@
     <string name="kotak_belum_dibuka">Belum pernah dibuka</string>
     <string name="kotak_buka_simulasi">Buka kotak (simulasi)</string>
     <string name="dosis_judul">Dosis hari ini</string>
+    <string name="dosis_tanpa_data">Waktu minum ini sudah lewat sebelum aplikasi mulai dipakai, jadi tidak dihitung terlewat.</string>
     <string name="dosis_jam">Jam minum %1$s</string>
     <string name="dosis_jendela">Dihitung bila diminum antara %1$s dan %2$s</string>
     <string name="dosis_tercatat_pada">Tercatat %1$s</string>
@@ -74,6 +75,7 @@
     <string name="status_kotak">Sudah diminum (kotak)</string>
     <string name="status_manual">Sudah dikonfirmasi</string>
     <string name="status_bepergian">Bepergian (dikonfirmasi)</string>
+    <string name="status_tanpa_data">Belum dipantau</string>
 
     <!-- Hari singkat, Senin dulu -->
     <string-array name="hari_singkat">
@@ -95,9 +97,71 @@
     <string name="riwayat_di_luar">Dibuka di luar jadwal</string>
     <string name="riwayat_kosong">Belum ada riwayat.</string>
 
-    <!-- P7 PMO (sementara) -->
+    <!-- P1 Persetujuan (isi teks dari assets/persetujuan.md, ditulis Abyan) -->
+    <string name="setuju_judul">Persetujuan</string>
+    <string name="setuju_kosong">File persetujuan.md tidak terbaca.</string>
+    <string name="setuju_centang">Saya sudah membaca dan menyetujui isi di atas</string>
+    <string name="setuju_lanjut">Lanjut</string>
+
+    <!-- P5 Pengingat khusus (judul dan isi pesan dari aturan_program.json) -->
+    <string name="saluran_pengingat">Pengingat</string>
+    <string name="saluran_pengingat_isi">Pengingat pada jam minum dan saat terlambat</string>
+    <string name="p5_tanpa_pesan">Belum ada pesan untuk hari rawan di file aturan.</string>
+    <string name="p5_status_kotak">Status kotak hari ini</string>
+    <string name="p5_dasar">Dasar pengingat</string>
+    <string name="p5_dasar_waktu">Hari ke-%1$d termasuk jadwal hari rawan</string>
+    <string name="p5_dasar_pola">%1$d dosis terlewat dalam %2$d hari terakhir</string>
+    <string name="p5_tunda">Ingatkan %1$d menit lagi</string>
+    <string name="p5_sudah_tercatat">Dosis hari ini sudah tercatat atau jendelanya sudah lewat.</string>
+    <string name="p5_tutup">Tutup</string>
+    <string name="riwayat_pesan">Pengingat khusus %1$s · %2$s</string>
+    <string name="aksi_sudah_minum">ditekan: sudah minum</string>
+    <string name="aksi_tunda">ditekan: ingatkan lagi</string>
+    <string name="aksi_ditutup">ditutup</string>
+    <string name="aksi_belum">belum ditanggapi</string>
+
+    <!-- Peringatan izin di Beranda -->
+    <string name="izin_judul">Pengingat mungkin tidak sampai</string>
+    <string name="izin_bluetooth">Izin perangkat di sekitar mati, jadi aplikasi tidak bisa terhubung ke kotak.</string>
+    <string name="izin_buka_pengaturan">Buka pengaturan aplikasi</string>
+    <string name="izin_notifikasi">Notifikasi mati, jadi pengingat tidak muncul.</string>
+    <string name="izin_nyalakan_notifikasi">Nyalakan notifikasi</string>
+    <string name="izin_alarm_tepat">Alarm tepat waktu belum diizinkan, jadi pengingat bisa terlambat beberapa menit.</string>
+    <string name="izin_izinkan_alarm">Izinkan alarm</string>
+    <string name="izin_layar_penuh">Layar penuh diblokir, jadi pengingat khusus hanya tampil sebagai notifikasi.</string>
+    <string name="izin_izinkan_layar_penuh">Izinkan layar penuh</string>
+    <string name="izin_baterai">Penghemat baterai bisa menghentikan aplikasi di latar, jadi pengingat bisa terlewat.</string>
+    <string name="izin_izinkan_latar">Izinkan berjalan di latar</string>
+    <string name="izin_layar_kunci">HP Xiaomi ini belum mengizinkan aplikasi tampil di layar kunci, jadi pengingat khusus tidak muncul saat HP terkunci. Buka Perizinan lainnya, pilih \"Tampil di Layar kunci\", lalu \"Selalu izinkan\".</string>
+    <string name="izin_izinkan_layar_kunci">Buka Perizinan lainnya</string>
+    <string name="izin_sudah_diizinkan">Sudah saya izinkan</string>
+    <string name="izin_hilang_sendiri">Peringatan ini hilang sendiri setelah diperbaiki.</string>
+
+    <!-- P7 PMO -->
     <string name="pmo_judul">PMO</string>
-    <string name="pmo_sub">Pendamping minum obat yang kamu pilih. Tampilan ini dirapikan di tahap berikutnya.</string>
+    <string name="pmo_sub">Pendamping minum obat yang kamu pilih. Bisa dihapus atau diganti kapan saja.</string>
+    <string name="pmo_terhubung">PMO terhubung</string>
+    <string name="pmo_terhubung_sejak">Terhubung sejak %1$s</string>
+    <string name="pmo_belum_ada">Belum ada PMO yang terhubung.</string>
+    <string name="pmo_relay_kosong">Alamat relay belum diisi. Isi dulu di Pengaturan, bagian Relay.</string>
+    <string name="pmo_undang">Undang PMO</string>
+    <string name="pmo_undang_isi">Buat kode 6 digit, lalu PMO memasukkannya di aplikasi di HP-nya sendiri (pilih \"Saya PMO\").</string>
+    <string name="pmo_buat_kode">Buat kode undangan</string>
+    <string name="pmo_kode">Kode undangan</string>
+    <string name="pmo_kode_isi">Kode hanya bisa dipakai sekali dan berlaku sampai %1$s.</string>
+    <string name="pmo_relay_di_pengaturan">PMO menerima kabar lewat relay. Alamat relay diatur di Pengaturan.</string>
+    <string name="pmo_hapus">Hapus</string>
+    <string name="pmo_hapus_judul">Hapus PMO?</string>
+    <string name="pmo_hapus_isi">%1$s tidak akan menerima kabar lagi. PMO bisa diundang ulang dengan kode baru.</string>
+    <string name="pmo_gagal_undangan">Kode undangan belum bisa dibuat.</string>
+    <string name="pmo_gagal_hapus">PMO belum bisa dihapus.</string>
+
+    <!-- Relay errors: why a relay request failed, after the sentence saying what failed -->
+    <string name="relay_galat_tidak_terhubung">Relay di %1$s tidak menjawab. Pastikan relay menyala dan HP memakai WiFi yang sama, atau pakai \"Cari relay di WiFi ini\" di Pengaturan.</string>
+    <string name="relay_galat_beda_jaringan">Relay hanya menerima HP di jaringannya sendiri. Sambungkan HP ke WiFi yang sama dengan relay.</string>
+    <string name="relay_galat_bermasalah">Relay sedang bermasalah (kode %1$d). Coba lagi sebentar lagi.</string>
+    <string name="relay_galat_ditolak">Relay menolak permintaan ini (kode %1$d). Coba \"Cari relay di WiFi ini\" di Pengaturan.</string>
+    <string name="relay_galat_lain">Terjadi kesalahan saat menghubungi relay. Coba lagi.</string>
 
     <!-- P8 Pengaturan -->
     <string name="atur_judul">Pengaturan</string>
@@ -134,5 +198,11 @@
     <string name="atur_berhenti_isi">Semua data di HP ini dihapus dan aplikasi kembali ke layar awal. Langkah ini tidak bisa dibatalkan.</string>
     <string name="atur_berhenti_ya">Hapus dan berhenti</string>
     <string name="atur_relay">Relay</string>
+    <string name="atur_relay_isi">Relay meneruskan kabar ke HP PMO. Isi alamatnya, atau cari relay di WiFi yang sama.</string>
+    <string name="atur_relay_alamat">Alamat relay</string>
+    <string name="atur_relay_cari">Cari relay di WiFi ini</string>
+    <string name="atur_relay_mencari">Mencari…</string>
+    <string name="atur_relay_tidak_ditemukan">Relay tidak ditemukan di WiFi ini. Pastikan relay dan HP ada di jaringan yang sama.</string>
+    <string name="atur_disetujui">Persetujuan: %1$s</string>
     <string name="atur_versi_aturan">Status file aturan: %1$s</string>
 </resources>
