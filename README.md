@@ -27,13 +27,15 @@ bracelet ──BLE──▶ wearer's phone ──HTTP──▶ relay (Pi) ──
 | ↳ [`data/`](app/src/main/java/com/fallbracelet/data/README.md) | Event store, upload queue, settings, recordings |
 | ↳ [`relay/`](app/src/main/java/com/fallbracelet/relay/README.md) | HTTP client for the Pi relay, relay discovery |
 | ↳ [`caregiver/`](app/src/main/java/com/fallbracelet/caregiver/README.md) | Caregiver mode: push, live stream, alarm |
+| ↳ [`kotak/`](app/src/main/java/com/fallbracelet/kotak/README.md) | The medicine box: protocol v2 and the simulated ESP32 |
 | ↳ [`ui/`](app/src/main/java/com/fallbracelet/ui/README.md) | Activity, view model, Compose screens |
 | [`firmware/`](firmware/README.md) | Arduino sketches, DevKit wiring, power and pre-release notes |
+| ↳ [`kotak_obat/`](firmware/kotak_obat/README.md) | The medicine box: BLE protocol v2 header (firmware to come) |
 | ↳ [`fall_bracelet/`](firmware/fall_bracelet/README.md) | The bracelet firmware |
 | ↳ [`fall_bracelet_oled/`](firmware/fall_bracelet_oled/README.md) | DevKit copy with an OLED status display |
 | ↳ [`ble_msg_test/`](firmware/ble_msg_test/README.md) | Stand-in bracelet for testing the app by hand |
 | [`relay/`](relay/README.md) | Node relay for the Raspberry Pi, caregiver web page, API |
-| [`PROTOCOL.md`](PROTOCOL.md) | The BLE contract between bracelet and app |
+| [`PROTOCOL.md`](PROTOCOL.md) | The BLE contract between the box and the app (v2), and the old bracelet one (v1) |
 | `gradle/` | Gradle wrapper and `libs.versions.toml` (all library and plugin versions) |
 | `build.gradle.kts`, `settings.gradle.kts`, `gradle.properties` | Root Gradle setup: plugins, repositories, the single `:app` module, 4 GB JVM heap |
 

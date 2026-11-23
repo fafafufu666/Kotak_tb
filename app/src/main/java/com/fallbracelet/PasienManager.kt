@@ -243,9 +243,25 @@ class PasienManager(
         ))
     }
 
-    suspend fun bukaKotakSimulasi() {
-        val (waktu, demo) = sekarang()
-        catatPembukaanKotak(waktu, SumberKejadian.SIMULASI, demo)
+    /**
+     * LID_OPEN from a box (the simulated ESP32 now, the real box over BLE later). [waktu] is the
+     * box's time, or the receive time when its clock wasn't set (PRD F3). False when this
+     * (box, seq) was already stored: a resend after a lost ACK.
+     */
+    suspend fun catatDariKotak(waktu: Instant, sumber: SumberKejadian, perangkat: String, seq: Long): Boolean {
+        val demo = repo.pengaturan.first().demo.aktif
+        return dao.tambahDariKotak(KejadianPasien(
+            jenis = JenisKejadian.LID_OPEN.name, waktu = waktu.toEpochMilli(),
+            diterimaPada = System.currentTimeMillis(), sumber = sumber.name, demo = demo,
+            perangkat = perangkat, seqKotak = seq,
+        )) != -1L
+    }
+
+    /** The time the box should keep: the app's clock (the virtual one in demo mode) and the UTC offset. */
+    suspend fun waktuUntukKotak(): Pair<Long, Int> {
+        val (waktu, _) = sekarang()
+        val selisih = zona.rules.getOffset(waktu).totalSeconds / 60
+        return waktu.epochSecond to selisih
     }
 
     /** "Saya sudah minum obat". */

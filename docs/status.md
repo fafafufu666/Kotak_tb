@@ -1,8 +1,8 @@
 # Status pengembangan
 
 ## 1. Tahap saat ini
-Tahap 3 (PRD bagian 11): relay + sisi PMO, eskalasi dan STATUS_HARIAN sampai ke halaman web relay.
-Posisi: 2a di `main` (PR #3). 2b di cabang `tahap-2b` (PR #4), sudah diuji di tablet, menunggu digabung. Tahap 3 selesai di cabang `tahap-3` (dibuat dari `tahap-2b`), diuji ujung ke ujung di tablet dengan relay di laptop.
+Tahap 4 (PRD bagian 11): protokol v2 kotak. Atas permintaanmu, kotak memakai ESP32 tiruan di dalam aplikasi dulu; uji dengan ESP32 asli menyusul.
+Posisi: Tahap 0 sampai 3 sudah di `main`. Tahap 4 di cabang `tahap-4`, diuji di tablet.
 
 ## 2. Sudah jadi dan sudah diuji
 - Tahap 0 (di `main`): build APK lewat GitHub Actions, `applicationId` `id.esgas.kotakobat`, nama `[NAMA APLIKASI]`. APK terpasang dan terbuka di HP Abyan.
@@ -23,6 +23,13 @@ Posisi: 2a di `main` (PR #3). 2b di cabang `tahap-2b` (PR #4), sudah diuji di ta
 - Tahap 3 diuji ulang lewat WiFi saja (tanpa USB), 23-11-2026 23.45–00.00 WIB: laptop dan tablet di WiFi yang sama (10.133.58.x). Aplikasi menemukan relay sendiri saat alamat lama tidak menjawab, dan "Cari relay di WiFi ini" juga menemukannya; halaman PMO dibuka di `http://10.133.58.92:8787/`, PMO "Sari" terhubung dengan kode baru; "Atur ulang demo" mengembalikan halaman PMO ke data nyata (hari 1, tanpa tanda DEMO); putaran demo baru: 2 dosis terlewat → ESKALASI di relay ±2 detik → kartu di halaman PMO → "Tandai dilihat" → Riwayat pasien "Kabar ke PMO: dilihat oleh Sari" dalam beberapa detik.
 - Empat bug ditemukan dan diperbaiki saat uji WiFi: (1) "Atur ulang demo" bisa bertabrakan dengan pemeriksaan 15 detik sehingga ESKALASI demo tercatat ulang dan terkirim sesudah reset; sekarang reset memakai kunci yang sama dan mematikan demo lebih dulu, dan hanya catatan putaran demo saat ini yang dihitung. (2) Relay menyimpan ESKALASI demo yang belum dilihat sesudah demo selesai dan terus mengirim ulang; sekarang data demo dihapus begitu HP kembali ke data nyata. (3) Halaman PMO memunculkan kabar dari mode lain dan tidak membuang kabar yang sudah hilang dari relay saat memuat ulang. (4) Id kejadian relay bisa dipakai ulang sesudah data demo dihapus; tabel `events` sekarang AUTOINCREMENT (relay.db lama dibangun ulang sekali saat start, isinya tetap).
 
+- Tahap 4 (build lokal: 120 tes unit lulus, 17 baru; header firmware dikompilasi dengan g++, ukuran dan offset paket cocok): protokol v2 (`PROTOCOL.md`, `firmware/kotak_obat/ble_protocol.h`, `kotak/KotakProtokol.kt`, tes yang membandingkan header dengan Kotlin), ESP32 tiruan di aplikasi (`kotak/KotakSimulasi.kt`) yang hanya diajak bicara lewat byte protokol v2. Diuji di tablet 24-11-2026 00.30–00.45 WIB:
+  - migrasi `pasien.db` 3 ke 4 berjalan;
+  - kotak simulasi tersambung otomatis, jam minum 07.00 dan alarm 10 menit terkirim lewat CONFIG dan terbaca kembali;
+  - "Kirim kejadian uji": TEST bolak-balik sampai "Kejadian uji diterima";
+  - skenario 2 (mode demo): pada jam minum kotak berbunyi ("Kotak sedang berbunyi"); "Buka kotak (simulasi)" → bunyi berhenti, Beranda "Sudah diminum (kotak) · Tercatat 07.04", Riwayat "dari kotak, 07.04";
+  - skenario 3: kotak di luar jangkauan, dibuka pukul 07.07 (jam kotak), jam aplikasi dimajukan ke 08.07, kotak didekatkan lagi → kejadian tersimpan 2,3 detik kemudian dengan waktu aslinya 07.07, Riwayat "dari kotak, 07.07".
+
 ## 3. Sudah dibuat tetapi belum diuji
 - Semua layar dan perilaku 2b belum pernah dijalankan di HP (tidak ada emulator di cloud): P1 Persetujuan, P5 Pengingat khusus (layar penuh, tombol, catatan tombol di Riwayat), notifikasi jam minum, terlambat, dan pengingat ulang lewat alarm Android, P7 PMO berbahasa Indonesia, kartu Relay di Pengaturan, peringatan izin di Beranda.
 - Migrasi `pasien.db` versi 1 ke 2 (tabel `log_pengingat` baru): APK 2b di tablet uji dipasang baru, bukan di atas 2a, jadi migrasi belum terbukti di HP. SQL migrasi sudah dicocokkan dengan tabel buatan Room dan sama persis.
@@ -31,8 +38,10 @@ Posisi: 2a di `main` (PR #3). 2b di cabang `tahap-2b` (PR #4), sudah diuji di ta
 - Tahap 3: ulang-kirim ESKALASI setelah 30 menit nyata; push FCM ke HP PMO (Firebase belum dipakai); mode PMO di aplikasi Android (masih tampilan lama berbahasa Inggris, tidak dipakai karena PMO memakai halaman web); halaman PMO di HP lain lewat WiFi/hotspot (uji memakai USB).
 - Dari 2a: riwayat dan pita "Nilai contoh" belum terlihat di tangkapan layar.
 
+- Tahap 4: kotak BLE asli (`TautanKotak` di atas kode GATT yang ada) dan `ble_msg_test` versi kotak dengan perintah `buka`/`tutup` belum dibuat, menunggu ESP32 terpasang ke laptop. Bunyi buzzer tiruan belum terdengar di uji (tablet dalam mode senyap; sekarang dipindah ke aliran alarm).
+
 ## 4. Belum dikerjakan
-- Tahap 4 sampai 7 (protokol kotak, firmware, mode bepergian, uji skenario).
+- Tahap 4 dengan ESP32 asli, Tahap 5 sampai 7 (firmware kotak, mode bepergian, uji skenario).
 - Tombol "Hubungi" di halaman PMO (PRD M2): aplikasi belum punya isian nomor HP pasien.
 - Mode PMO di aplikasi Android masih tampilan lama berbahasa Inggris; tidak dipakai selama PMO memakai halaman web.
 
@@ -67,6 +76,13 @@ Asumsi Claude untuk "Belum dipantau":
 - Dosis yang jendelanya masih terbuka saat P2 tetap dihitung. Catatan kotak atau konfirmasi sebelum batas tetap dihitung diminum.
 - Di mode demo, "Lompat ke hari" memulai hitungan dari jam virtual saat itu, dan "Isi riwayat contoh" memundurkannya ke hari contoh tertua agar 2 hari terlewat contoh tetap terhitung.
 
+Asumsi Claude di Tahap 4:
+- UUID layanan kotak baru (`5b0a000X-…`), berbeda dari gelang, agar aplikasi tidak tertukar dengan gelang saudara.
+- CONFIG memuat juga `jendela_awal_menit` (1 byte, nama perangkat jadi 19 byte): bila tutup sudah dibuka dalam jendela dosis, kotak tidak berbunyi hari itu. Tanpa ini kotak tetap berbunyi pukul 07.00 walau dosis sudah tercatat pukul 06.58.
+- Kotak memakai jam aplikasi, termasuk jam virtual mode demo (TIME dikirim ulang saat jam demo bergeser), agar kejadian dan alarm kotak cocok dengan linimasa aplikasi.
+- Kotak mengirim LID_CLOSE (opsional di PRD) dengan lama tutup terbuka; aplikasi menerimanya tetapi belum memakainya.
+- Kejadian dari ESP32 tiruan dicatat dengan sumber SIMULASI.
+
 Asumsi Claude di Tahap 3:
 - Bila beberapa hari memenuhi syarat eskalasi sekaligus (misalnya HP mati beberapa hari), hanya hari terbaru yang dikirim; yang lebih lama dicatat tanpa dikirim.
 - ESKALASI unik per tanggal dosis; di mode demo tiap putaran (sesudah "Atur ulang demo") memakai id baru di relay agar latihan demo bisa diulang.
@@ -100,4 +116,4 @@ Asumsi Claude di Tahap 2b:
 - Lama pengobatan dan fase di konfigurasi masih [CONTOH]; perlu dicek ke PNPK TB [CEK].
 
 ## 8. Terakhir diperbarui
-24-11-2026, 00.05 WIB
+24-11-2026, 00.50 WIB

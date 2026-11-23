@@ -30,7 +30,10 @@ enum class SumberKejadian { KOTAK, SIMULASI, PASIEN }
  * One patient-side record: a box opening or a manual confirmation. Day statuses are worked out
  * from these by `adherence/RingkasanHarian`, so nothing derived is stored.
  */
-@Entity(tableName = "kejadian_pasien", indices = [Index(value = ["waktu"])])
+@Entity(
+    tableName = "kejadian_pasien",
+    indices = [Index(value = ["waktu"]), Index(value = ["perangkat", "seqKotak"], unique = true)],
+)
 data class KejadianPasien(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     /** [JenisKejadian] name. */
@@ -43,6 +46,12 @@ data class KejadianPasien(
     val sumber: String,
     /** Made in demo mode; removed by "Atur ulang demo" and ignored while demo mode is off. */
     val demo: Boolean,
+    /**
+     * For a box event: the box's name and its event `seq`. Unique together, so an event the box
+     * sends again (its ACK was lost) is stored once. Null for manual confirmations.
+     */
+    val perangkat: String? = null,
+    val seqKotak: Long? = null,
 )
 
 /** A `jam_minum` that applies from [berlakuMulai] (ISO date, e.g. 2026-11-23) on. */
@@ -126,6 +135,10 @@ interface PasienDao {
     @Insert
     suspend fun tambah(k: KejadianPasien): Long
 
+    /** Returns -1 when this box event (perangkat, seqKotak) is already stored. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun tambahDariKotak(k: KejadianPasien): Long
+
     @Insert
     suspend fun tambahSemua(k: List<KejadianPasien>)
 
@@ -200,14 +213,14 @@ interface PasienDao {
  */
 @Database(
     entities = [KejadianPasien::class, JamMinumEntity::class, LogPengingat::class, EskalasiEntity::class],
-    version = 3, exportSchema = false,
+    version = 4, exportSchema = false,
 )
 abstract class PasienDatabase : RoomDatabase() {
     abstract fun pasien(): PasienDao
 
     companion object {
         fun create(context: Context): PasienDatabase =
-            Room.databaseBuilder(context, PasienDatabase::class.java, "pasien.db").addMigrations(MIGRASI_1_2, MIGRASI_2_3).build()
+            Room.databaseBuilder(context, PasienDatabase::class.java, "pasien.db").addMigrations(MIGRASI_1_2, MIGRASI_2_3, MIGRASI_3_4).build()
 
         /** Stage 2b: adds the reminder log; earlier records stay. */
         val MIGRASI_1_2 = object : Migration(1, 2) {
@@ -217,6 +230,18 @@ abstract class PasienDatabase : RoomDatabase() {
                         "`jenis` TEXT NOT NULL, `urutan` INTEGER NOT NULL, `waktuPemicu` INTEGER NOT NULL, " +
                         "`ditanganiPada` INTEGER, `hasil` TEXT, `pesanId` TEXT, `aksi` TEXT, `aksiPada` INTEGER, " +
                         "`demo` INTEGER NOT NULL, PRIMARY KEY(`kunci`))"
+                )
+            }
+        }
+
+        /** Stage 4: box events carry the box name and seq, unique together. */
+        val MIGRASI_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `kejadian_pasien` ADD COLUMN `perangkat` TEXT")
+                db.execSQL("ALTER TABLE `kejadian_pasien` ADD COLUMN `seqKotak` INTEGER")
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_kejadian_pasien_perangkat_seqKotak` " +
+                        "ON `kejadian_pasien` (`perangkat`, `seqKotak`)"
                 )
             }
         }

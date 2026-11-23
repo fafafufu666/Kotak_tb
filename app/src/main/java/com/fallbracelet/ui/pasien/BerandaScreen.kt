@@ -88,26 +88,40 @@ fun BerandaScreen(vm: PasienViewModel, app: AppViewModel) {
                 }
             }
 
-            // Box
+            // Box: the real one over BLE, or the simulated ESP32 (protocol v2)
             KartuPasien {
                 LabelBagian(stringResource(R.string.kotak_judul))
                 val adaKotak = settings.deviceAddress != null
-                val (teksLink, warna) = when {
-                    !adaKotak -> stringResource(R.string.kotak_simulasi) to WarnaPasien.Redup
-                    link == LinkState.CONNECTED -> stringResource(R.string.kotak_terhubung) to WarnaPasien.Baik
-                    link == LinkState.CONNECTING -> stringResource(R.string.kotak_menghubungkan) to WarnaPasien.Waspada
+                val linkSim by vm.linkKotak.collectAsState()
+                val status by vm.statusKotak.collectAsState()
+                val l = if (adaKotak) link else linkSim
+                val (teksLink, warna) = when (l) {
+                    LinkState.CONNECTED -> stringResource(R.string.kotak_terhubung) to WarnaPasien.Baik
+                    LinkState.CONNECTING -> stringResource(R.string.kotak_menghubungkan) to WarnaPasien.Waspada
                     else -> stringResource(R.string.kotak_terputus) to WarnaPasien.Buruk
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(12.dp).background(warna, CircleShape))
                     Spacer(Modifier.width(8.dp))
                     Text(teksLink, style = MaterialTheme.typography.titleMedium)
+                    if (!adaKotak) {
+                        Spacer(Modifier.width(8.dp))
+                        Lencana(stringResource(R.string.kotak_simulasi), WarnaPasien.Redup, WarnaPasien.TealMuda)
+                    }
                 }
                 Text(
                     keadaan.terakhirDibuka?.let { stringResource(R.string.kotak_terakhir_dibuka, Format.waktu(it, zona)) }
                         ?: stringResource(R.string.kotak_belum_dibuka),
                     color = WarnaPasien.Redup,
                 )
+                status?.let { st ->
+                    if (st.keadaan == com.fallbracelet.kotak.KeadaanKotak.ALARM) {
+                        Text(stringResource(R.string.kotak_berbunyi), color = WarnaPasien.Waspada, style = MaterialTheme.typography.titleMedium)
+                    }
+                    if (st.antrean > 0) {
+                        Text(stringResource(R.string.kotak_antrean, st.antrean), color = WarnaPasien.Redup, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
                 if (!adaKotak) {
                     Spacer(Modifier.height(8.dp))
                     OutlinedButton(onClick = vm::bukaKotakSimulasi) { Text(stringResource(R.string.kotak_buka_simulasi)) }
