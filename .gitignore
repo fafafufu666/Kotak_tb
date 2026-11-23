@@ -11,6 +11,9 @@ captures/
 keystore.properties
 *.jks
 *.keystore
+# The shared DEBUG key for test APKs (like Android's own debug key, not a secret), so each
+# CI build installs over the last one. Never use it for a real release.
+!app/kotakobat-debug.keystore
 
 # Recordings pulled from the phone
 *.csv

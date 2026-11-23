@@ -25,6 +25,17 @@ android {
         versionName = "0.1.0"
     }
 
+    signingConfigs {
+        // One fixed debug key for every build (CI included), so a new test APK installs over the
+        // old one and keeps its data. Same idea as Android's own debug key: not a secret, debug only.
+        getByName("debug") {
+            storeFile = file("kotakobat-debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
