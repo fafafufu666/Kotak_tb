@@ -2,4 +2,137 @@
 <resources>
     <string name="app_name">[NAMA APLIKASI]</string>
     <string name="default_relay_url" translatable="false"></string>
+
+    <!-- Pilih mode (layar pertama) -->
+    <string name="mode_judul">Selamat datang</string>
+    <string name="mode_sub">HP ini untuk siapa? Bisa diganti nanti.</string>
+    <string name="mode_pasien">Saya pasien</string>
+    <string name="mode_pasien_isi">HP ini dipakai pasien bersama kotak obat, untuk pengingat dan catatan minum obat.</string>
+    <string name="mode_pmo">Saya PMO (pendamping)</string>
+    <string name="mode_pmo_isi">HP ini menerima kabar bila pasien yang didampingi melewatkan dosis.</string>
+
+    <!-- Navigasi -->
+    <string name="tab_beranda">Beranda</string>
+    <string name="tab_riwayat">Riwayat</string>
+    <string name="tab_pmo">PMO</string>
+    <string name="tab_pengaturan">Pengaturan</string>
+    <string name="demo_penanda">DEMO</string>
+
+    <!-- P2 Mulai pengobatan -->
+    <string name="mulai_judul">Mulai pengobatan</string>
+    <string name="mulai_sub">Isi data berikut. Semuanya bisa diubah nanti di Pengaturan.</string>
+    <string name="mulai_nama">Nama panggilan</string>
+    <string name="mulai_tanggal">Tanggal mulai pengobatan</string>
+    <string name="mulai_jam">Jam minum obat</string>
+    <string name="mulai_lama">Lama pengobatan: %1$d hari (fase intensif %2$d hari), dari file aturan.</string>
+    <string name="mulai_simpan">Simpan dan lanjut</string>
+    <string name="pilih">Pilih</string>
+    <string name="batal">Batal</string>
+    <string name="simpan">Simpan</string>
+    <string name="ok">OK</string>
+
+    <!-- P3 Pasangkan kotak -->
+    <string name="pasang_judul">Pasangkan kotak</string>
+    <string name="pasang_sub">Nyalakan kotak obat dan dekatkan ke HP.</string>
+    <string name="pasang_mencari">Mencari…</string>
+    <string name="pasang_tombol">Pasangkan</string>
+    <string name="pasang_cari_lagi">Cari lagi</string>
+    <string name="pasang_lewati">Lewati, pakai kotak simulasi</string>
+    <string name="pasang_bt_mati">Nyalakan Bluetooth dan izinkan akses perangkat di sekitar.</string>
+    <string name="pasang_nyalakan_bt">Nyalakan Bluetooth</string>
+
+    <!-- P4 Beranda -->
+    <string name="beranda_halo">Halo, %1$s</string>
+    <string name="beranda_hari_dari">Hari %1$d dari %2$d</string>
+    <string name="beranda_sisa">Sisa %1$d hari</string>
+    <string name="beranda_belum_mulai">Pengobatan mulai %1$s</string>
+    <string name="beranda_selesai">Masa pengobatan sudah selesai</string>
+    <string name="fase_intensif">Fase intensif</string>
+    <string name="fase_lanjutan">Fase lanjutan</string>
+    <string name="fase_belum_mulai">Belum mulai</string>
+    <string name="fase_selesai">Selesai</string>
+    <string name="kotak_judul">Kotak obat</string>
+    <string name="kotak_terhubung">Terhubung</string>
+    <string name="kotak_menghubungkan">Menghubungkan…</string>
+    <string name="kotak_terputus">Terputus</string>
+    <string name="kotak_simulasi">Kotak simulasi</string>
+    <string name="kotak_terakhir_dibuka">Terakhir dibuka: %1$s</string>
+    <string name="kotak_belum_dibuka">Belum pernah dibuka</string>
+    <string name="kotak_buka_simulasi">Buka kotak (simulasi)</string>
+    <string name="dosis_judul">Dosis hari ini</string>
+    <string name="dosis_jam">Jam minum %1$s</string>
+    <string name="dosis_jendela">Dihitung bila diminum antara %1$s dan %2$s</string>
+    <string name="dosis_tercatat_pada">Tercatat %1$s</string>
+    <string name="dosis_sudah_minum">Saya sudah minum obat</string>
+    <string name="dosis_tidak_ada">Tidak ada dosis hari ini</string>
+    <string name="minggu_judul">Minggu ini</string>
+
+    <!-- Status dosis -->
+    <string name="status_belum">Belum</string>
+    <string name="status_terlambat">Terlambat</string>
+    <string name="status_terlewat">Terlewat</string>
+    <string name="status_kotak">Sudah diminum (kotak)</string>
+    <string name="status_manual">Sudah dikonfirmasi</string>
+    <string name="status_bepergian">Bepergian (dikonfirmasi)</string>
+
+    <!-- Hari singkat, Senin dulu -->
+    <string-array name="hari_singkat">
+        <item>Sen</item>
+        <item>Sel</item>
+        <item>Rab</item>
+        <item>Kam</item>
+        <item>Jum</item>
+        <item>Sab</item>
+        <item>Min</item>
+    </string-array>
+
+    <!-- P6 Riwayat -->
+    <string name="riwayat_judul">Riwayat</string>
+    <string name="riwayat_sub">Status dosis per hari, terbaru di atas.</string>
+    <string name="riwayat_hari_ke">Hari %1$d · %2$s</string>
+    <string name="riwayat_sumber_kotak">dari kotak, %1$s</string>
+    <string name="riwayat_sumber_manual">konfirmasi manual, %1$s</string>
+    <string name="riwayat_di_luar">Dibuka di luar jadwal</string>
+    <string name="riwayat_kosong">Belum ada riwayat.</string>
+
+    <!-- P7 PMO (sementara) -->
+    <string name="pmo_judul">PMO</string>
+    <string name="pmo_sub">Pendamping minum obat yang kamu pilih. Tampilan ini dirapikan di tahap berikutnya.</string>
+
+    <!-- P8 Pengaturan -->
+    <string name="atur_judul">Pengaturan</string>
+    <string name="atur_nilai_contoh">Nilai contoh</string>
+    <string name="atur_nilai_contoh_isi">File aturan masih berisi nilai contoh, belum nilai final.</string>
+    <string name="atur_peringatan_judul">File aturan bermasalah</string>
+    <string name="atur_peringatan_isi">Bagian berikut tidak terbaca, jadi aplikasi memakai nilai cadangan:</string>
+    <string name="atur_peringatan_baris">%1$s: %2$s</string>
+    <string name="atur_profil">Profil</string>
+    <string name="atur_jam_minum">Jam minum: %1$s</string>
+    <string name="atur_ubah_jam">Ubah jam minum</string>
+    <string name="atur_ubah_nama">Ubah nama panggilan</string>
+    <string name="atur_tanggal_mulai">Mulai pengobatan: %1$s</string>
+    <string name="atur_kotak">Kotak obat</string>
+    <string name="atur_kotak_dipasangkan">Dipasangkan: %1$s</string>
+    <string name="atur_kotak_tidak_ada">Belum ada kotak. Kotak simulasi dipakai.</string>
+    <string name="atur_pasangkan">Pasangkan kotak</string>
+    <string name="atur_lupakan">Lupakan kotak</string>
+    <string name="atur_jam_ke_kotak">Jam minum dikirim ke kotak mulai Tahap 4.</string>
+    <string name="atur_demo">Mode demo</string>
+    <string name="atur_demo_isi">Untuk presentasi: lompat hari, majukan jam, dan isi riwayat contoh. Data demo bisa dihapus dengan Atur ulang demo.</string>
+    <string name="atur_demo_aktif">Mode demo aktif</string>
+    <string name="atur_demo_jam">Jam virtual: %1$s</string>
+    <string name="atur_demo_lompat">Lompat ke hari</string>
+    <string name="atur_demo_lompat_tombol">Lompat</string>
+    <string name="atur_demo_15m">+15 menit</string>
+    <string name="atur_demo_1j">+1 jam</string>
+    <string name="atur_demo_1h">+1 hari</string>
+    <string name="atur_demo_ke_terlewat">Majukan ke batas terlewat</string>
+    <string name="atur_demo_riwayat">Isi riwayat contoh (5 diminum, 2 terlewat)</string>
+    <string name="atur_demo_reset">Atur ulang demo</string>
+    <string name="atur_demo_alarm_kotak">Picu alarm kotak tersedia mulai Tahap 4.</string>
+    <string name="atur_berhenti">Berhenti ikut program</string>
+    <string name="atur_berhenti_isi">Semua data di HP ini dihapus dan aplikasi kembali ke layar awal. Langkah ini tidak bisa dibatalkan.</string>
+    <string name="atur_berhenti_ya">Hapus dan berhenti</string>
+    <string name="atur_relay">Relay</string>
+    <string name="atur_versi_aturan">Status file aturan: %1$s</string>
 </resources>
