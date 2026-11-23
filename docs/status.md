@@ -1,8 +1,8 @@
 # Status pengembangan
 
 ## 1. Tahap saat ini
-Tahap 5 (firmware kotak, cabang `tahap-5`) dan Tahap 6 bagian P9 mode bepergian (cabang `tahap-6`, dibuat dari `tahap-5`).
-Posisi: Tahap 0 sampai 4 sudah di `main`. Firmware terkompilasi, belum dijalankan di hardware. Mode bepergian diuji di tablet. Perapian UI sesuai mockup (sisa Tahap 6) menunggu mockup.
+Tahap 7 (PRD bagian 11): uji awal skenario bagian 12 dengan kotak tiruan, cabang `tahap-7`.
+Posisi: Tahap 0 sampai 6 (P9) sudah di `main`. Hasil uji awal di `docs/hasil_uji.md`: 7 lulus, 1 lulus bersyarat (teks notifikasi final). Uji sesungguhnya menunggu kotak asli.
 
 ## 2. Sudah jadi dan sudah diuji
 - Tahap 0 (di `main`): build APK lewat GitHub Actions, `applicationId` `id.esgas.kotakobat`, nama `[NAMA APLIKASI]`. APK terpasang dan terbuka di HP Abyan.
@@ -35,6 +35,8 @@ Posisi: Tahap 0 sampai 4 sudah di `main`. Firmware terkompilasi, belum dijalanka
 - Tahap 6, P9 mode bepergian (build lokal: 126 tes lulus, 6 baru; tes relay lulus): kartu di Pengaturan (pilih 1 sampai `maks_hari` hari, nyalakan/matikan), pemberitahuan di Beranda, hari dengan konfirmasi manual tercatat BEPERGIAN, eskalasi mengikuti `mode_bepergian.eskalasi_aktif`, mati sendiri. Diuji di tablet (mode demo) 24-11-2026 01.00–01.10 WIB: nyalakan 3 hari → "Aktif sampai Kamis, 26 November 2026 (sisa 3 hari)", relay langsung menerima tanggal akhir, halaman PMO menampilkan "Mode bepergian sampai Kamis, 26 Nov"; "Saya sudah minum obat" → "Bepergian (dikonfirmasi)" dan ✓ di deret PMO; dimajukan ke Jumat → mode mati sendiri, tanggal akhir di relay kosong, Selasa tetap BEPERGIAN.
 - Perbaikan dari uji itu: deret 7 hari PMO baru diperbarui tiap 5 menit sesudah dosis diminum; sekarang ringkasan dikirim begitu ada hari yang berubah.
 
+- Tahap 7 uji awal (24-11-2026 01.05–01.20 WIB, kotak tiruan, relay laptop lewat WiFi): skenario 1–5, 7, 8 lulus; skenario 6 lulus bersyarat. Rincian dan angka di `docs/hasil_uji.md`.
+
 ## 3. Sudah dibuat tetapi belum diuji
 - Semua layar dan perilaku 2b belum pernah dijalankan di HP (tidak ada emulator di cloud): P1 Persetujuan, P5 Pengingat khusus (layar penuh, tombol, catatan tombol di Riwayat), notifikasi jam minum, terlambat, dan pengingat ulang lewat alarm Android, P7 PMO berbahasa Indonesia, kartu Relay di Pengaturan, peringatan izin di Beranda.
 - Migrasi `pasien.db` versi 1 ke 2 (tabel `log_pengingat` baru): APK 2b di tablet uji dipasang baru, bukan di atas 2a, jadi migrasi belum terbukti di HP. SQL migrasi sudah dicocokkan dengan tabel buatan Room dan sama persis.
@@ -46,6 +48,8 @@ Posisi: Tahap 0 sampai 4 sudah di `main`. Firmware terkompilasi, belum dijalanka
 - Tahap 4: kotak BLE asli (`TautanKotak` di atas kode GATT yang ada) dan `ble_msg_test` versi kotak dengan perintah `buka`/`tutup` belum dibuat, menunggu ESP32 terpasang ke laptop. Bunyi buzzer tiruan belum terdengar di uji (tablet dalam mode senyap; sekarang dipindah ke aliran alarm).
 
 - Tahap 5: firmware kotak belum pernah dijalankan di ESP32; aplikasi belum punya tautan BLE ke kotak asli (masih kotak tiruan). Keduanya diuji bersama begitu ESP32 terpasang ke laptop; daftar ceknya adalah `KotakSimulasiTest`.
+
+- Temuan uji awal: tiga saluran notifikasi bawaan gelang berbahasa Inggris ("Fall and SOS alarms", "Bracelet updates", "Connection") masih dibuat aplikasi dan terlihat di pengaturan notifikasi Android.
 
 ## 4. Belum dikerjakan
 - Tahap 4 dengan ESP32 asli, Tahap 5 sampai 7 (firmware kotak, mode bepergian, uji skenario).
@@ -129,4 +133,4 @@ Asumsi Claude di Tahap 2b:
 - Lama pengobatan dan fase di konfigurasi masih [CONTOH]; perlu dicek ke PNPK TB [CEK].
 
 ## 8. Terakhir diperbarui
-24-11-2026, 01.15 WIB
+24-11-2026, 01.25 WIB
