@@ -42,7 +42,7 @@ fun PmoScreen(app: AppViewModel) {
     val settings by app.settings.collectAsState()
     val invite by app.invite.collectAsState()
     val daftar by app.caregivers.collectAsState()
-    val pesan by app.relayMessage.collectAsState()
+    val pesan by app.pmoMessage.collectAsState()
     val health by app.relayHealth.collectAsState()
     val zona = ZoneId.systemDefault()
     var hapus by rememberSaveable { mutableStateOf<Long?>(null) }

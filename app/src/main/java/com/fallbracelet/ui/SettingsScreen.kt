@@ -209,7 +209,9 @@ internal fun CaregiversCard(vm: AppViewModel) {
     val settings by vm.settings.collectAsState()
     val invite by vm.invite.collectAsState()
     val caregivers by vm.caregivers.collectAsState()
-    val message by vm.relayMessage.collectAsState()
+    val relayMessage by vm.relayMessage.collectAsState()
+    val pmoMessage by vm.pmoMessage.collectAsState()
+    val message = pmoMessage ?: relayMessage
     val health by vm.relayHealth.collectAsState()
     var url by remember(settings.relayUrl) { mutableStateOf(settings.relayUrl) }
     LaunchedEffect(settings.wearerToken, health?.caregivers) { vm.refreshCaregivers() }

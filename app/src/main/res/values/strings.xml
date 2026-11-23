@@ -130,6 +130,9 @@
     <string name="izin_izinkan_layar_penuh">Izinkan layar penuh</string>
     <string name="izin_baterai">Penghemat baterai bisa menghentikan aplikasi di latar, jadi pengingat bisa terlewat.</string>
     <string name="izin_izinkan_latar">Izinkan berjalan di latar</string>
+    <string name="izin_layar_kunci">HP Xiaomi ini belum mengizinkan aplikasi tampil di layar kunci, jadi pengingat khusus tidak muncul saat HP terkunci. Buka Perizinan lainnya, pilih \"Tampil di Layar kunci\", lalu \"Selalu izinkan\".</string>
+    <string name="izin_izinkan_layar_kunci">Buka Perizinan lainnya</string>
+    <string name="izin_sudah_diizinkan">Sudah saya izinkan</string>
     <string name="izin_hilang_sendiri">Peringatan ini hilang sendiri setelah diperbaiki.</string>
 
     <!-- P7 PMO -->
@@ -140,7 +143,7 @@
     <string name="pmo_belum_ada">Belum ada PMO yang terhubung.</string>
     <string name="pmo_relay_kosong">Alamat relay belum diisi. Isi dulu di Pengaturan, bagian Relay.</string>
     <string name="pmo_undang">Undang PMO</string>
-    <string name="pmo_undang_isi">Buat kode 6 digit, lalu PMO memasukkannya di aplikasi di HP-nya sendiri (pilih "Saya PMO").</string>
+    <string name="pmo_undang_isi">Buat kode 6 digit, lalu PMO memasukkannya di aplikasi di HP-nya sendiri (pilih \"Saya PMO\").</string>
     <string name="pmo_buat_kode">Buat kode undangan</string>
     <string name="pmo_kode">Kode undangan</string>
     <string name="pmo_kode_isi">Kode hanya bisa dipakai sekali dan berlaku sampai %1$s.</string>
@@ -148,6 +151,15 @@
     <string name="pmo_hapus">Hapus</string>
     <string name="pmo_hapus_judul">Hapus PMO?</string>
     <string name="pmo_hapus_isi">%1$s tidak akan menerima kabar lagi. PMO bisa diundang ulang dengan kode baru.</string>
+    <string name="pmo_gagal_undangan">Kode undangan belum bisa dibuat.</string>
+    <string name="pmo_gagal_hapus">PMO belum bisa dihapus.</string>
+
+    <!-- Relay errors: why a relay request failed, after the sentence saying what failed -->
+    <string name="relay_galat_tidak_terhubung">Relay di %1$s tidak menjawab. Pastikan relay menyala dan HP memakai WiFi yang sama, atau pakai \"Cari relay di WiFi ini\" di Pengaturan.</string>
+    <string name="relay_galat_beda_jaringan">Relay hanya menerima HP di jaringannya sendiri. Sambungkan HP ke WiFi yang sama dengan relay.</string>
+    <string name="relay_galat_bermasalah">Relay sedang bermasalah (kode %1$d). Coba lagi sebentar lagi.</string>
+    <string name="relay_galat_ditolak">Relay menolak permintaan ini (kode %1$d). Coba \"Cari relay di WiFi ini\" di Pengaturan.</string>
+    <string name="relay_galat_lain">Terjadi kesalahan saat menghubungi relay. Coba lagi.</string>
 
     <!-- P8 Pengaturan -->
     <string name="atur_judul">Pengaturan</string>
@@ -188,6 +200,7 @@
     <string name="atur_relay_alamat">Alamat relay</string>
     <string name="atur_relay_cari">Cari relay di WiFi ini</string>
     <string name="atur_relay_mencari">Mencari…</string>
+    <string name="atur_relay_tidak_ditemukan">Relay tidak ditemukan di WiFi ini. Pastikan relay dan HP ada di jaringan yang sama.</string>
     <string name="atur_disetujui">Persetujuan: %1$s</string>
     <string name="atur_versi_aturan">Status file aturan: %1$s</string>
 </resources>

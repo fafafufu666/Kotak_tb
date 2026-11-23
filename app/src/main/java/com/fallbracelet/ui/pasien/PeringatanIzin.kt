@@ -7,11 +7,15 @@ import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -36,8 +40,16 @@ import com.fallbracelet.ui.openNotificationSettings
 import com.fallbracelet.ui.requestBatteryExemption
 import kotlinx.coroutines.delay
 
-/** A setting that stops reminders reaching the patient, with the fix. */
-private data class MasalahIzin(val teks: Int, val tombol: Int, val perbaiki: (Context) -> Unit)
+/**
+ * A setting that stops reminders reaching the patient, with the fix. [abaikan] is set when the
+ * app cannot check the setting itself, so the patient can say it is done.
+ */
+private data class MasalahIzin(
+    val teks: Int,
+    val tombol: Int,
+    val perbaiki: (Context) -> Unit,
+    val abaikan: ((Context) -> Unit)? = null,
+)
 
 /**
  * The phone settings that stop reminders getting through, the same checks as the bracelet's
@@ -56,6 +68,13 @@ private fun masalahIzin(context: Context, adaKotak: Boolean): List<MasalahIzin> 
     if (Build.VERSION.SDK_INT >= 34 && !context.getSystemService(NotificationManager::class.java).canUseFullScreenIntent()) {
         add(MasalahIzin(R.string.izin_layar_penuh, R.string.izin_izinkan_layar_penuh, ::openFullScreenSettings))
     }
+    when (IzinXiaomi.bolehDiLayarKunci(context)) {
+        false -> add(MasalahIzin(R.string.izin_layar_kunci, R.string.izin_izinkan_layar_kunci, IzinXiaomi::bukaIzinLainnya))
+        null -> if (!IzinXiaomi.sudahDikonfirmasi(context)) {
+            add(MasalahIzin(R.string.izin_layar_kunci, R.string.izin_izinkan_layar_kunci, IzinXiaomi::bukaIzinLainnya, IzinXiaomi::konfirmasi))
+        }
+        true -> Unit
+    }
     if (!context.getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(context.packageName)) {
         add(MasalahIzin(R.string.izin_baterai, R.string.izin_izinkan_latar, ::requestBatteryExemption))
     }
@@ -69,6 +88,7 @@ private fun bukaIzinAlarmTepat(context: Context) {
 }
 
 /** Warning card on the patient's Beranda. Re-checked on resume and every 15 s; hidden when all is well. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PeringatanIzin(adaKotak: Boolean) {
     val context = LocalContext.current
@@ -90,7 +110,12 @@ fun PeringatanIzin(adaKotak: Boolean) {
         masalah.forEach { m ->
             Spacer(Modifier.height(10.dp))
             Text(stringResource(m.teks), style = MaterialTheme.typography.bodyMedium)
-            OutlinedButton(onClick = { m.perbaiki(context) }) { Text(stringResource(m.tombol)) }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { m.perbaiki(context) }) { Text(stringResource(m.tombol)) }
+                m.abaikan?.let { abaikan ->
+                    TextButton(onClick = { abaikan(context); detak++ }) { Text(stringResource(R.string.izin_sudah_diizinkan)) }
+                }
+            }
         }
         Spacer(Modifier.height(4.dp))
         Text(stringResource(R.string.izin_hilang_sendiri), color = WarnaPasien.Redup, style = MaterialTheme.typography.bodySmall)

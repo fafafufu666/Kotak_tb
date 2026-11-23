@@ -9,10 +9,14 @@ Posisi: 2a sudah di `main` (PR #3). Bagian 2b (P1, P5 + notifikasi, P7, banner i
 - Tahap 1 (di `main`): logika PRD bagian 7 dan file aturan bagian 8.
 - Tahap 2a (di `main`): 65 tes unit lulus. Diuji di HP Abyan 23-11-2026 sekitar 17.05 WIB: Beranda, mode demo (lompat ke hari 58, majukan hari), atur ulang demo, dan kotak simulasi berjalan sesuai.
 - Tahap 2b: GitHub Actions run 45155539006 (23-11-2026): 83 tes unit lulus, 0 gagal (15 tes baru untuk jadwal pengingat, 3 untuk pembacaan teks persetujuan); APK ter-build. Ini hanya membuktikan logika dan kompilasi, belum perilaku di HP.
+- Tahap 2b diuji di tablet Xiaomi (HyperOS 2, Android 15) lewat adb, 23-11-2026 22.15–23.10 WIB: kartu peringatan izin dan tombolnya, mode demo (lompat hari, majukan jam), P5 muncul sendiri pada hari rawan, "Ingatkan 30 menit lagi" muncul lagi tepat 30 menit kemudian, "Saya sudah minum obat" tercatat di Beranda dan Riwayat, alarm nyata berbunyi tepat 22.30.00 saat layar terkunci, notifikasi layar kunci tanpa kata TB.
+- Perbaikan sesudah uji itu (build lokal, 88 tes lulus, dipasang dan dicek di tablet): peringatan Xiaomi "Tampil di Layar kunci" di kartu izin dengan tombol ke Perizinan lainnya; pesan galat relay berbahasa Indonesia (tanpa teks teknis) dan galat PMO hanya tampil di tab PMO; tanda kutip di teks yang sebelumnya hilang.
 
 ## 3. Sudah dibuat tetapi belum diuji
 - Semua layar dan perilaku 2b belum pernah dijalankan di HP (tidak ada emulator di cloud): P1 Persetujuan, P5 Pengingat khusus (layar penuh, tombol, catatan tombol di Riwayat), notifikasi jam minum, terlambat, dan pengingat ulang lewat alarm Android, P7 PMO berbahasa Indonesia, kartu Relay di Pengaturan, peringatan izin di Beranda.
-- Migrasi `pasien.db` versi 1 ke 2 (tabel `log_pengingat` baru): data 2a seharusnya tetap ada setelah APK 2b dipasang di atasnya; baru terbukti saat dipasang.
+- Migrasi `pasien.db` versi 1 ke 2 (tabel `log_pengingat` baru): APK 2b di tablet uji dipasang baru, bukan di atas 2a, jadi migrasi belum terbukti di HP. SQL migrasi sudah dicocokkan dengan tabel buatan Room dan sama persis.
+- P1 Persetujuan (sudah disetujui sebelum uji), notifikasi biasa pada hari bukan hari rawan, dan pengingat TERLAMBAT belum dilihat di HP.
+- P5 di atas layar kunci sesudah izin Xiaomi "Tampil di Layar kunci" dinyalakan belum diuji ulang.
 - Dari 2a: riwayat dan pita "Nilai contoh" belum terlihat di tangkapan layar.
 
 ## 4. Belum dikerjakan
@@ -56,11 +60,13 @@ Asumsi Claude di Tahap 2b:
 ## 6. Menunggu dari saya
 - Pasang APK 2b di atas APK 2a (tanpa menghapus), jalankan langkah uji di pull request 2b, dan laporkan hasilnya.
 - Menggabungkan pull request 2b bila uji lancar.
+- Keputusan: dosis sebelum aplikasi dipasang (hari 1 sebelum jam daftar, atau hari-hari sebelum tanggal mulai yang diisi mundur) sekarang dihitung TERLEWAT. Ini ikut memicu pola hari rawan dan, mulai Tahap 3, eskalasi ke PMO. Perlu diputuskan sebelum Tahap 3 apakah hari-hari itu dihitung.
 - Nama aplikasi final, nilai dan teks [DIISI ABYAN] di `aturan_program.json` (termasuk teks notifikasi), dan teks persetujuan di `app/src/main/assets/persetujuan.md` (kapan saja).
 
 ## 7. Kendala dan risiko
 - Cloud ini tidak bisa mengunduh Android SDK atau file hasil build, jadi build dan tes aplikasi hanya berjalan di GitHub Actions.
 - Android 12 ke atas meminta izin "Alarm & pengingat" untuk alarm tepat waktu; tanpa izin itu pengingat bisa terlambat beberapa menit. Beberapa merek HP (misalnya Xiaomi, Oppo, Vivo) juga menahan aplikasi di latar walau izin sudah diberikan.
+- Xiaomi (HyperOS): tanpa izin "Tampil di Layar kunci" P5 tidak bisa tampil di atas layar kunci (hanya notifikasi). Di tablet uji, izin layar penuh Android juga kembali mati beberapa detik sesudah setiap pembaruan APK; kartu peringatan menampilkannya lagi dan harus dinyalakan ulang.
 - Mode PMO di HP pendamping masih berbahasa Inggris dan menyebut gelang; diganti di Tahap 3.
 - Kunci debug di repo publik: siapa pun bisa membuat APK yang ditandatangani dengan kunci yang sama. Aman selama hanya APK dari GitHub Actions repo ini yang dipasang.
 - Alamat relay bawaan build debug (`192.168.0.104`) adalah alamat Pi di rumah saudara; perlu "Cari relay" atau diganti saat demo.
@@ -68,4 +74,4 @@ Asumsi Claude di Tahap 2b:
 - Lama pengobatan dan fase di konfigurasi masih [CONTOH]; perlu dicek ke PNPK TB [CEK].
 
 ## 8. Terakhir diperbarui
-23-11-2026, 17.24 WIB
+23-11-2026, 23.15 WIB
