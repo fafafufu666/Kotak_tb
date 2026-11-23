@@ -1,0 +1,38 @@
+{
+  "status_nilai": "CONTOH - belum ditetapkan Abyan",
+  "pengobatan": { "total_hari": 180, "fase_intensif_hari": 56 },
+  "dosis": {
+    "jendela_awal_menit": 120,
+    "batas_terlambat_menit": 60,
+    "batas_terlewat_menit": 240,
+    "pengingat_ulang": { "jumlah": 2, "jarak_menit": 30 },
+    "durasi_alarm_kotak_menit": 10
+  },
+  "hari_rawan": {
+    "rentang_hari": [[14, 28], [50, 70]],
+    "tanggal_libur": [],
+    "pola": { "dalam_hari": 7, "min_terlewat": 1 },
+    "gabungan": "SALAH_SATU",
+    "maks_per_hari": 2
+  },
+  "eskalasi": {
+    "min_terlewat_berturut": 2,
+    "ulang_kirim_menit": 30,
+    "maks_ulang": 3
+  },
+  "mode_bepergian": { "maks_hari": 7, "eskalasi_aktif": true },
+  "pesan": [
+    {
+      "id": "pesan_1",
+      "kapan": "HARI_RAWAN",
+      "judul": "Pengingat khusus hari ini",
+      "isi": "[Teks pesan pengingat - DIISI ABYAN]",
+      "variabel_tersedia": ["{nama}", "{hari_ke}", "{sisa_hari}", "{total_hari}", "{dosis_tercatat}"]
+    }
+  ],
+  "notifikasi": {
+    "pasien_jam_minum": "[Teks netral - DIISI ABYAN]",
+    "pasien_hari_rawan": "[Teks netral - DIISI ABYAN]",
+    "pmo_eskalasi": "[Teks netral - DIISI ABYAN]"
+  }
+}
