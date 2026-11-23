@@ -202,7 +202,8 @@ class PasienManager(
             dosisTercatat = RingkasanHarian.dosisTercatat(semua),
             riwayatJam = riwayatJam,
             logPengingat = log.filter { it.demo == p.demo.aktif },
-            eskalasi = esk.filter { it.demo == p.demo.aktif },
+            // In demo mode only this run's rows (see PasienRepository.demoSesi).
+            eskalasi = esk.filter { if (p.demo.aktif) it.demo && it.perangkat == "demo-" + p.demo.sesi else !it.demo },
         )
     }
 
@@ -528,10 +529,14 @@ class PasienManager(
 
     /** "Atur ulang demo": demo rows gone, real clock and start date back. */
     suspend fun aturUlangDemo() {
-        dao.hapusDemo()
-        dao.hapusLogDemo()
-        dao.hapusEskalasiDemo()
-        repo.aturUlangDemo()
+        // Under the reminder lock, and demo off before the rows go: otherwise a check running in
+        // between still sees demo mode, finds its rows gone and records them again.
+        kunciPengingat.withLock {
+            repo.aturUlangDemo()
+            dao.hapusDemo()
+            dao.hapusLogDemo()
+            dao.hapusEskalasiDemo()
+        }
         pemicuSinkron.trySend(Unit)
     }
 

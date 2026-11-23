@@ -20,6 +20,8 @@ Posisi: 2a di `main` (PR #3). 2b di cabang `tahap-2b` (PR #4), sudah diuji di ta
   - "Tandai dilihat" di halaman PMO → Riwayat pasien "Kabar ke PMO: dilihat oleh Ani" dalam 9 detik;
   - hari terlewat ke-3 dan ke-4 masing-masing mengirim satu ESKALASI;
   - ulang-kirim sampai `maks_ulang` dan berhenti setelah "Tandai dilihat" diuji di `relay/test.mjs` (selang dipersingkat), belum ditunggu 30 menit di HP.
+- Tahap 3 diuji ulang lewat WiFi saja (tanpa USB), 23-11-2026 23.45–00.00 WIB: laptop dan tablet di WiFi yang sama (10.133.58.x). Aplikasi menemukan relay sendiri saat alamat lama tidak menjawab, dan "Cari relay di WiFi ini" juga menemukannya; halaman PMO dibuka di `http://10.133.58.92:8787/`, PMO "Sari" terhubung dengan kode baru; "Atur ulang demo" mengembalikan halaman PMO ke data nyata (hari 1, tanpa tanda DEMO); putaran demo baru: 2 dosis terlewat → ESKALASI di relay ±2 detik → kartu di halaman PMO → "Tandai dilihat" → Riwayat pasien "Kabar ke PMO: dilihat oleh Sari" dalam beberapa detik.
+- Empat bug ditemukan dan diperbaiki saat uji WiFi: (1) "Atur ulang demo" bisa bertabrakan dengan pemeriksaan 15 detik sehingga ESKALASI demo tercatat ulang dan terkirim sesudah reset; sekarang reset memakai kunci yang sama dan mematikan demo lebih dulu, dan hanya catatan putaran demo saat ini yang dihitung. (2) Relay menyimpan ESKALASI demo yang belum dilihat sesudah demo selesai dan terus mengirim ulang; sekarang data demo dihapus begitu HP kembali ke data nyata. (3) Halaman PMO memunculkan kabar dari mode lain dan tidak membuang kabar yang sudah hilang dari relay saat memuat ulang. (4) Id kejadian relay bisa dipakai ulang sesudah data demo dihapus; tabel `events` sekarang AUTOINCREMENT (relay.db lama dibangun ulang sekali saat start, isinya tetap).
 
 ## 3. Sudah dibuat tetapi belum diuji
 - Semua layar dan perilaku 2b belum pernah dijalankan di HP (tidak ada emulator di cloud): P1 Persetujuan, P5 Pengingat khusus (layar penuh, tombol, catatan tombol di Riwayat), notifikasi jam minum, terlambat, dan pengingat ulang lewat alarm Android, P7 PMO berbahasa Indonesia, kartu Relay di Pengaturan, peringatan izin di Beranda.
@@ -98,4 +100,4 @@ Asumsi Claude di Tahap 2b:
 - Lama pengobatan dan fase di konfigurasi masih [CONTOH]; perlu dicek ke PNPK TB [CEK].
 
 ## 8. Terakhir diperbarui
-23-11-2026, 23.50 WIB
+24-11-2026, 00.05 WIB

@@ -33,6 +33,8 @@ data class PengaturanDemo(
      * the real setup time. Set by "Lompat ke hari" and moved back by "Isi riwayat contoh".
      */
     val dipantauSejak: Instant? = null,
+    /** This demo run's id on the relay; null until its first ESKALASI. */
+    val sesi: String? = null,
 )
 
 /**

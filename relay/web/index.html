@@ -166,7 +166,11 @@ async function api(method, path, body, auth = token) {
 async function loadDashboard() {
   const d = await api('GET', '/v1/dashboard?limit=200');
   pasien = new Map(d.wearers.map((w) => [w.id, w]));
+  // Keep only what the relay still has unseen (a demo that ended, or one seen on another device, is gone).
+  const open = new Set(d.wearers.flatMap((w) => w.events.filter((e) => e.type === 'ESKALASI' && !e.ackedAt).map((e) => e.id)));
+  ringing = ringing.filter((e) => open.has(e.id) && modeNow(e));
   for (const w of d.wearers) for (const e of w.events) maybeRing({ ...e, wearerName: w.name });
+  updateAlarm();
   render();
 }
 
@@ -231,7 +235,18 @@ function onMessage(type, d) {
       maybeRing({ ...d, wearerName: d.wearerName || w.name });
       break;
     }
-    case 'days': if (w) { w.ringkasan = d.ringkasan; w.days = d.days; } break;
+    case 'days':
+      if (w) {
+        const switched = !!w.ringkasan?.demo !== !!d.ringkasan.demo;
+        w.ringkasan = d.ringkasan; w.days = d.days;
+        if (switched) {
+          // Demo ended (or started): the other mode's ESKALASI are gone from the relay.
+          w.events = w.events.filter((e) => e.type !== 'ESKALASI' || !!e.demo === !!d.ringkasan.demo);
+          ringing = ringing.filter((e) => modeNow(e));
+          updateAlarm();
+        }
+      }
+      break;
     case 'status': if (w) { w.lastHeartbeat = d.at; w.offline = false; } break;
     case 'online': if (w) w.offline = false; break;
     case 'offline':
@@ -249,8 +264,14 @@ function onMessage(type, d) {
 
 // --- Alert: overlay, chime, vibration and a notification while the page is open -----------------
 
+/** Whether [e] belongs to the mode (demo or real) the patient's phone is in now. */
+function modeNow(e) {
+  const r = pasien.get(e.wearerId)?.ringkasan;
+  return !r || !!e.demo === !!r.demo;
+}
+
 function maybeRing(e) {
-  if (e.type !== 'ESKALASI' || e.ackedAt || Date.now() - (e.receivedAt ?? Date.now()) > RING_WINDOW_MS) return;
+  if (e.type !== 'ESKALASI' || e.ackedAt || !modeNow(e) || Date.now() - (e.receivedAt ?? Date.now()) > RING_WINDOW_MS) return;
   const known = ringing.find((x) => x.id === e.id);
   if (known) {
     Object.assign(known, e);

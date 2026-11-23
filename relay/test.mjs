@@ -161,6 +161,19 @@ try {
   const real = (await api('GET', '/v1/dashboard', pmo.token)).json.wearers[0];
   assert.equal(real.ringkasan.demo, false);
   assert.equal(real.ringkasan.terakhirDibuka, null, 'never opened stays null, not 0');
+  assert.equal(real.events.filter((e) => e.demo).length, 0, 'demo ESKALASI dropped once back on real data');
+
+  // An unseen demo ESKALASI stops re-sending once the phone is back on real data.
+  const ps2 = await listen(pmo.token);
+  await wait(200);
+  await api('POST', '/v1/status-harian', p.token, { tanggal: '2026-11-24', demo: true, hari });
+  const esk3 = (await api('POST', '/v1/events', p.token, eskalasi('2026-11-25', 20417))).json;
+  await api('POST', '/v1/status-harian', p.token, { tanggal: '2026-11-24', demo: false, hari: [] });
+  await wait(1500);
+  assert.equal(ps2.got.filter((m) => m.type === 'event' && m.data.id === esk3.id).length, 1, 'no re-sends after the demo ended');
+  const esk4 = (await api('POST', '/v1/events', p.token, { ...eskalasi('2026-11-26', 20418), deviceAddress: 'demo-def' })).json;
+  assert.ok(esk4.id > esk3.id, 'event ids are never reused after demo events are deleted');
+  ps2.close();
   assert.deepEqual(real.days.map((d) => d.status), ['BELUM']);
 
   await api('DELETE', `/v1/caregivers/${c.caregiverId}`, w.token);

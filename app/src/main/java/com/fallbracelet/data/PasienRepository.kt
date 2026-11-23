@@ -61,6 +61,7 @@ class PasienRepository(private val context: Context) {
                 geserJam = Duration.ofMillis(p[Keys.demoGeserMs] ?: 0),
                 tanggalMulai = p[Keys.demoMulai]?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
                 dipantauSejak = p[Keys.demoDipantau]?.let(Instant::ofEpochMilli),
+                sesi = p[Keys.demoSesi],
             ),
             persetujuanPada = p[Keys.persetujuan],
             terdaftarPada = p[Keys.terdaftar],

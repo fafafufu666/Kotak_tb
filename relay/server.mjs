@@ -55,7 +55,7 @@ db.exec(`
     code TEXT PRIMARY KEY, wearer_id INTEGER NOT NULL REFERENCES wearers(id) ON DELETE CASCADE,
     expires_at INTEGER NOT NULL);
   CREATE TABLE IF NOT EXISTS events (
-    id INTEGER PRIMARY KEY, wearer_id INTEGER NOT NULL REFERENCES wearers(id) ON DELETE CASCADE,
+    id INTEGER PRIMARY KEY AUTOINCREMENT, wearer_id INTEGER NOT NULL REFERENCES wearers(id) ON DELETE CASCADE,
     device_address TEXT NOT NULL, seq INTEGER NOT NULL, type TEXT NOT NULL, battery_pct INTEGER,
     occurred_at INTEGER NOT NULL, received_at INTEGER NOT NULL, impact_g REAL, alarms_24h INTEGER,
     cancelled_24h INTEGER, message TEXT NOT NULL, acked_by TEXT, acked_at INTEGER,
@@ -81,6 +81,17 @@ addColumn('events', 'demo', 'INTEGER NOT NULL DEFAULT 0');
 addColumn('events', 'resend_every_ms', 'INTEGER');     // from the app's eskalasi.ulang_kirim_menit
 addColumn('events', 'max_resends', 'INTEGER');         // from the app's eskalasi.maks_ulang
 addColumn('wearers', 'ringkasan', 'TEXT');             // latest day summary (day number, demo, ...)
+// Event ids are SSE ids (Last-Event-ID) and must never be reused, also after demo events are
+// deleted: older databases get AUTOINCREMENT by rebuilding the table once, keeping every row.
+{
+  const sql = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'events'").get().sql;
+  if (!/AUTOINCREMENT/i.test(sql)) {
+    db.exec('PRAGMA foreign_keys = OFF; BEGIN');
+    db.exec(sql.replace(/CREATE TABLE ("?events"?)/i, 'CREATE TABLE events_baru').replace(/\bid INTEGER PRIMARY KEY\b/i, 'id INTEGER PRIMARY KEY AUTOINCREMENT'));
+    db.exec('INSERT INTO events_baru SELECT * FROM events; DROP TABLE events; ALTER TABLE events_baru RENAME TO events; COMMIT; PRAGMA foreign_keys = ON');
+    console.log('events table rebuilt with AUTOINCREMENT');
+  }
+}
 // Identifies this relay across address changes (e.g. a new hotspot), so phones keep their links.
 db.prepare("INSERT OR IGNORE INTO meta (key, value) VALUES ('relay_id', ?)").run(crypto.randomBytes(8).toString('hex'));
 const RELAY_ID = db.prepare("SELECT value FROM meta WHERE key = 'relay_id'").get().value;
@@ -139,6 +150,10 @@ const q = {
   dropDaysBetween: db.prepare('DELETE FROM days WHERE wearer_id = ? AND demo = ? AND tanggal BETWEEN ? AND ?'),
   daysOf: db.prepare(`SELECT tanggal, hari_ke AS hariKe, status, waktu FROM days
     WHERE wearer_id = ? AND demo = ? AND tanggal BETWEEN ? AND ? ORDER BY tanggal`),
+  // Demo data is throwaway: once the phone is back on real data it goes, so nothing from the
+  // demo keeps re-sending or shows up for the PMO.
+  dropDemoEvents: db.prepare('DELETE FROM events WHERE wearer_id = ? AND demo = 1'),
+  dropDemoDays: db.prepare('DELETE FROM days WHERE wearer_id = ? AND demo = 1'),
   eskalasiOf: db.prepare(`SELECT id, device_address, seq, acked_by, acked_at FROM events
     WHERE wearer_id = ? AND type = 'ESKALASI' ORDER BY id DESC LIMIT 50`),
 };
@@ -363,6 +378,7 @@ const routes = {
     };
     db.exec('BEGIN');
     try {
+      if (!demo) { q.dropDemoEvents.run(w.id); q.dropDemoDays.run(w.id); }
       if (hari.length) q.dropDaysBetween.run(w.id, demo, hari[0].tanggal, b.tanggal);
       for (const h of hari) q.upsertDay.run(w.id, demo, h.tanggal, int(h.hariKe), h.status, int(h.waktu), now());
       q.setRingkasan.run(JSON.stringify(ringkasan), w.id);
