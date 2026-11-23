@@ -2,16 +2,17 @@
 
 ## 1. Tahap saat ini
 Tahap 0 (PRD bagian 11): fork siap, build APK debug apa adanya, ganti `applicationId` dan nama aplikasi.
-Posisi: rencana disetujui, perubahan sudah di cabang `tahap-0`, menunggu hasil build di GitHub Actions.
+Posisi: build dan tes di GitHub Actions berhasil (pull request #1). Menunggu kamu memasang APK di HP dan menggabungkan pull request.
 
 ## 2. Sudah jadi dan sudah diuji
 - Pemeriksaan lingkungan cloud (23-11-2026): JDK 21 ada, Node 22 ada, Android SDK tidak ada, unduhan dari `dl.google.com` dan `maven.google.com` diblokir jaringan. Kesimpulan: APK tidak bisa di-build di cloud ini.
 
+- 23-11-2026, GitHub Actions run 45132401074: tes unit yang ada (4 file) lulus, APK debug ter-build tanpa Firebase (artifact `apk-debug`, 13,6 MB).
+
 ## 3. Sudah dibuat tetapi belum diuji
-- Workflow `.github/workflows/build-apk.yml`: tes unit + build APK debug di setiap push, APK diunggah sebagai artifact `apk-debug`.
-- `applicationId` = `id.esgas.kotakobat`; nama aplikasi = `[NAMA APLIKASI]` (penanda sementara).
-- Firebase opsional: build jalan tanpa `google-services.json`; diambil dari secret `GOOGLE_SERVICES_JSON` bila ada.
-- Pemasangan APK di HP belum diuji (langkahmu).
+- `applicationId` `id.esgas.kotakobat` dan nama `[NAMA APLIKASI]` di APK: build sukses, tetapi isi APK belum bisa saya periksa (unduhan artifact diblokir dari cloud).
+- Pemasangan dan pembukaan APK di HP (langkahmu).
+- Build dengan Firebase (secret `GOOGLE_SERVICES_JSON` belum dibuat).
 
 ## 4. Belum dikerjakan
 - Tahap 1 sampai 7.
@@ -37,4 +38,4 @@ Posisi: rencana disetujui, perubahan sudah di cabang `tahap-0`, menunggu hasil b
 - Tahap 3: timer ulang-kirim relay ditulis langsung di `relay/server.mjs` (2 menit, 5 kali, hanya FALL/SOS), sedangkan PRD meminta nilainya dari konfigurasi (30 menit, 3 kali, [CONTOH]). Perlu diputuskan saat Tahap 3.
 
 ## 8. Terakhir diperbarui
-23-11-2026, 14.50 WIB
+23-11-2026, 14.55 WIB
