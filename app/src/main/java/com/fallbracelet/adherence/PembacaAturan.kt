@@ -50,6 +50,13 @@ object PembacaAturan {
         }
 
         fun <T> bagian(kunci: String, bacaBagian: (JSONObject) -> T): T {
+            // The fallback is always read, so a broken aturan_bawaan.json shows up at once,
+            // not only on the day aturan_program.json also breaks.
+            val nilaiCadangan = try {
+                bacaBagian(cadangan)
+            } catch (e: Exception) {
+                throw IllegalStateException("aturan_bawaan.json, section '$kunci': ${e.message}", e)
+            }
             if (utama != null) {
                 try {
                     return bacaBagian(utama)
@@ -61,11 +68,7 @@ object PembacaAturan {
                     }
                 }
             }
-            return try {
-                bacaBagian(cadangan)
-            } catch (e: Exception) {
-                throw IllegalStateException("aturan_bawaan.json, section '$kunci': ${e.message}", e)
-            }
+            return nilaiCadangan
         }
 
         val statusNilai = bagian("status_nilai") { it.teks("status_nilai") }
