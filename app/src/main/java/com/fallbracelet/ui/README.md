@@ -11,7 +11,8 @@ The app's only launcher activity and every screen, for both modes. Screens read 
 |---|---|
 | `MainActivity.kt` | Launcher activity (shows over the lock screen). Requests Bluetooth / notification permissions, hosts `App`, and tells `CaregiverManager` when it's visible |
 | `AppViewModel.kt` | Single `AndroidViewModel` for all screens: scanning and pairing, bracelet commands and config, relay URL / discovery, invites and caregivers, caregiver linking and acks, streaming and recordings |
-| `App.kt` | Top-level routing: no mode → `ModeScreen`; caregiver → `CaregiverScreen`; wearer without a bracelet → `PairScreen` (scan list, Pair, switch to caregiver); otherwise the four tabs. Also `ScreenTitle` |
+| `App.kt` | Top-level routing: no mode → `PilihModeScreen`; caregiver → `CaregiverScreen`; wearer (patient) → `pasien/PasienApp`. The old bracelet tabs are kept as the unused `GelangApp`. Also `ScreenTitle` |
+| `pasien/` | Patient mode (PRD 6.1), Indonesian text from `strings.xml`, teal–white theme (`TemaPasien.kt`): `PasienApp.kt` (routing, tabs, DEMO ribbon, mode choice, P3 pairing with "skip", temporary PMO tab), `MulaiScreen.kt` (P2), `BerandaScreen.kt` (P4), `RiwayatScreen.kt` (P6), `PengaturanScreen.kt` (P8 + demo mode), `Pemilih.kt` (date and time dialogs), `Format.kt` (Indonesian dates, status and phase labels), `PasienViewModel.kt` |
 | `ModeScreens.kt` | First-launch mode choice and the whole caregiver UI: link with a 6-digit code, dashboard per wearer with stat tiles, Day / Week / All history, Acknowledge |
 | `HomeScreen.kt` | Wearer Home tab: Bluetooth link, state, fall-countdown "I'm OK" card, battery, last check-in, recent events, Find and Send test alert |
 | `EventsScreen.kt` | Wearer Events tab: full history with "Seen by" and late-delivery notes; `relativeTime` |

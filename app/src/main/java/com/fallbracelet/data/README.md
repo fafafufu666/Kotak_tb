@@ -12,6 +12,8 @@ queued events to the relay.
 |---|---|
 | `EventStore.kt` | Room database `AppDatabase` (version 3) with `EventEntity` and `EventDao`. `(deviceAddress, seq)` is unique, so a resent event is ignored (`insert` returns -1). Holds the migrations `SMS_TO_UPLOAD_QUEUE` (v1→2) and `ADD_ACKS` (v2→3) |
 | `SettingsRepository.kt` | `AppMode` (WEARER / CAREGIVER), `AppSettings` and `SettingsRepository`, a Preferences DataStore named `settings`: paired bracelet, cached wearer name, offline warning, relay URL and id, wearer / caregiver tokens, ack and stream cursors |
+| `PasienStore.kt` | Separate Room database `pasien.db` (version 1): `kejadian_pasien` (box openings and manual confirmations, with source and a demo flag) and `jam_minum` (dose time history, each entry applies from its date) |
+| `PasienRepository.kt` | Preferences DataStore `pasien`: nickname, real start date, "box skipped", demo mode (on, virtual clock shift, virtual start date) |
 | `Uploader.kt` | `EventRelay` and `UploadQueue` interfaces and `Uploader.flush()`, which sends queued events oldest first and stops at the first failure so order is kept. Does nothing until the relay is `configured` (address set and phone registered) |
 | `Recorder.kt` | Writes the 100 Hz STREAM to `files/recordings/<time>_<label>.csv`, one file per labelled trial, for tuning the detector |
 
