@@ -60,6 +60,7 @@
     <string name="kotak_belum_dibuka">Belum pernah dibuka</string>
     <string name="kotak_buka_simulasi">Buka kotak (simulasi)</string>
     <string name="dosis_judul">Dosis hari ini</string>
+    <string name="dosis_tanpa_data">Waktu minum ini sudah lewat sebelum aplikasi mulai dipakai, jadi tidak dihitung terlewat.</string>
     <string name="dosis_jam">Jam minum %1$s</string>
     <string name="dosis_jendela">Dihitung bila diminum antara %1$s dan %2$s</string>
     <string name="dosis_tercatat_pada">Tercatat %1$s</string>
@@ -74,6 +75,7 @@
     <string name="status_kotak">Sudah diminum (kotak)</string>
     <string name="status_manual">Sudah dikonfirmasi</string>
     <string name="status_bepergian">Bepergian (dikonfirmasi)</string>
+    <string name="status_tanpa_data">Belum dipantau</string>
 
     <!-- Hari singkat, Senin dulu -->
     <string-array name="hari_singkat">

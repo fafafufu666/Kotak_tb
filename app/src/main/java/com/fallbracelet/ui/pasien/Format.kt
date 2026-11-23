@@ -37,6 +37,7 @@ fun teksStatus(s: StatusDosis): String = stringResource(
         StatusDosis.DIMINUM_KOTAK -> R.string.status_kotak
         StatusDosis.DIKONFIRMASI_MANUAL -> R.string.status_manual
         StatusDosis.BEPERGIAN -> R.string.status_bepergian
+        StatusDosis.TANPA_DATA -> R.string.status_tanpa_data
     }
 )
 

@@ -33,6 +33,7 @@ Posisi: 2a sudah di `main` (PR #3). Bagian 2b (P1, P5 + notifikasi, P7, banner i
 - 23-11-2026: eskalasi dikirim setiap hari terlewat selama rangkaian terlewat ≥ `min_terlewat_berturut`.
 - 23-11-2026: Tahap 2 dibagi 2a dan 2b; kunci debug tetap disimpan di repo (`app/kotakobat-debug.keystore`); mockup dikirim di Tahap 6; "Ingatkan x menit lagi" memakai `pengingat_ulang.jarak_menit`.
 - 23-11-2026: rencana 2b disetujui (P1 dari `persetujuan.md` berisi penanda, P5 + notifikasi AlarmManager, P7 Indonesia, banner izin). PR #3 digabung 17.10 WIB.
+- 23-11-2026: dosis yang jendelanya sudah tutup sebelum aplikasi dipasang tidak dihitung terlewat (status baru "Belum dipantau"); relay Tahap 3 dijalankan di laptop; sisi PMO memakai halaman web relay; nilai ulang-kirim eskalasi ikut dikirim aplikasi di setiap kejadian ESKALASI.
 
 Asumsi Claude di Tahap 1 (belum kamu konfirmasi; bisa diubah):
 - Pola "dalam N hari terakhir" ikut menghitung hari ini.
@@ -48,6 +49,11 @@ Asumsi Claude di Tahap 2a:
 - Tombol "Buka kotak (simulasi)" ada di Beranda selama belum ada kotak asli; pembukaan di luar mode demo dihitung sebagai data nyata.
 - Data pasien di database terpisah (`pasien.db`); layar gelang lama tidak dipakai tetapi kodenya belum dihapus.
 
+Asumsi Claude untuk "Belum dipantau":
+- Batasnya waktu pasien menyelesaikan P2; untuk pemasangan lama yang belum menyimpan waktu itu, waktu persetujuan P1.
+- Dosis yang jendelanya masih terbuka saat P2 tetap dihitung. Catatan kotak atau konfirmasi sebelum batas tetap dihitung diminum.
+- Di mode demo, "Lompat ke hari" memulai hitungan dari jam virtual saat itu, dan "Isi riwayat contoh" memundurkannya ke hari contoh tertua agar 2 hari terlewat contoh tetap terhitung.
+
 Asumsi Claude di Tahap 2b:
 - Saat jam minum dan saat menjadi terlambat: bila hari rawan dan batas `maks_per_hari` belum tercapai, yang tampil pengingat khusus (P5); bila tidak, notifikasi biasa. Pengingat ulang berikutnya selalu notifikasi biasa.
 - "Ingatkan x menit lagi" menampilkan P5 lagi dan tidak dihitung dalam `maks_per_hari`.
@@ -60,7 +66,6 @@ Asumsi Claude di Tahap 2b:
 ## 6. Menunggu dari saya
 - Pasang APK 2b di atas APK 2a (tanpa menghapus), jalankan langkah uji di pull request 2b, dan laporkan hasilnya.
 - Menggabungkan pull request 2b bila uji lancar.
-- Keputusan: dosis sebelum aplikasi dipasang (hari 1 sebelum jam daftar, atau hari-hari sebelum tanggal mulai yang diisi mundur) sekarang dihitung TERLEWAT. Ini ikut memicu pola hari rawan dan, mulai Tahap 3, eskalasi ke PMO. Perlu diputuskan sebelum Tahap 3 apakah hari-hari itu dihitung.
 - Nama aplikasi final, nilai dan teks [DIISI ABYAN] di `aturan_program.json` (termasuk teks notifikasi), dan teks persetujuan di `app/src/main/assets/persetujuan.md` (kapan saja).
 
 ## 7. Kendala dan risiko

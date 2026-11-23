@@ -9,6 +9,7 @@ import com.fallbracelet.adherence.RingkasanHarian as R
 import com.fallbracelet.adherence.StatusDosis.BELUM
 import com.fallbracelet.adherence.StatusDosis.DIKONFIRMASI_MANUAL
 import com.fallbracelet.adherence.StatusDosis.DIMINUM_KOTAK
+import com.fallbracelet.adherence.StatusDosis.TANPA_DATA
 import com.fallbracelet.adherence.StatusDosis.TERLAMBAT
 import com.fallbracelet.adherence.StatusDosis.TERLEWAT
 import org.junit.Assert.assertEquals
@@ -126,5 +127,57 @@ class RingkasanHarianTest {
         assertEquals(2, LogikaKepatuhan.terlewatBerturut(hari.map { it.status }))
         // Days before the start are skipped.
         assertEquals(4, R.riwayatContoh(mulai.plusDays(6), mulai, pola, jam7, zona).size)
+    }
+    // --- Doses before the app was in use (setup time) ------------------------------------
+
+    @Test fun setUpAfterTodaysWindowClosedIsUnknownNotMissed() {
+        // Set up at 21.18 on day 1; the 07.00 dose closed at 11.00.
+        val hari = R.hari(mulai, mulai, jam7, zona, t(mulai, 22), emptyList(), emptyList(), dosis, dipantauSejak = t(mulai, 21, 18))
+        assertEquals(listOf(TANPA_DATA), hari.map { it.status })
+        assertEquals(0, LogikaKepatuhan.terlewatBerturut(hari.map { it.status }))
+    }
+
+    @Test fun startDateInThePastLeavesEarlierDaysUnknown() {
+        // Start date entered as Monday, app set up Thursday 08.00: Mon–Wed unknown, Thursday counts.
+        val kamis = mulai.plusDays(3)
+        val hari = R.hari(mulai, kamis, jam7, zona, t(kamis, 12), emptyList(), emptyList(), dosis, dipantauSejak = t(kamis, 8))
+        assertEquals(listOf(TANPA_DATA, TANPA_DATA, TANPA_DATA, TERLEWAT), hari.map { it.status })
+    }
+
+    @Test fun aDoseStillOpenAtSetupCounts() {
+        // Set up at 10.00, inside the 05.00–11.00 window: missing it is a real miss.
+        val hari = R.hari(mulai, mulai, jam7, zona, t(mulai, 12), emptyList(), emptyList(), dosis, dipantauSejak = t(mulai, 10))
+        assertEquals(listOf(TERLEWAT), hari.map { it.status })
+    }
+
+    @Test fun recordsBeforeSetupStillCount() {
+        val hari = R.hari(
+            mulai, mulai.plusDays(1), jam7, zona, t(mulai.plusDays(1), 12),
+            listOf(t(mulai, 7, 5)), emptyList(), dosis, dipantauSejak = t(mulai.plusDays(1), 6),
+        )
+        assertEquals(listOf(DIMINUM_KOTAK, TERLEWAT), hari.map { it.status })
+    }
+
+    @Test fun noSetupTimeCountsEveryDay() {
+        val hari = R.hari(mulai, mulai.plusDays(1), jam7, zona, t(mulai.plusDays(1), 12), emptyList(), emptyList(), dosis)
+        assertEquals(listOf(TERLEWAT, TERLEWAT), hari.map { it.status })
+    }
+
+    @Test fun demoModeUsesItsOwnStartOfCounting() {
+        val nyata = t(mulai, 21)
+        val demo = PengaturanDemo(aktif = true, dipantauSejak = t(mulai.minusDays(7), 0))
+        assertEquals(t(mulai.minusDays(7), 0), R.dipantauSejak(nyata, demo))
+        assertEquals(nyata, R.dipantauSejak(nyata, demo.copy(aktif = false)))
+        assertEquals(nyata, R.dipantauSejak(nyata, PengaturanDemo(aktif = true)))
+    }
+
+    @Test fun sampleHistoryStartsCountingAtItsOldestDay() {
+        val hariIni = mulai.plusDays(10)
+        val pola = listOf(true, true, true, true, true, false, false)
+        val awal = R.awalRiwayatContoh(hariIni, pola, zona)
+        assertEquals(hariIni.minusDays(7).atStartOfDay(zona).toInstant(), awal)
+        val buka = R.riwayatContoh(hariIni, mulai, pola, jam7, zona)
+        val hari = R.hari(mulai, hariIni.minusDays(1), jam7, zona, t(hariIni, 6), buka, emptyList(), dosis, dipantauSejak = awal)
+        assertEquals(List(3) { TANPA_DATA } + List(5) { DIMINUM_KOTAK } + listOf(TERLEWAT, TERLEWAT), hari.map { it.status })
     }
 }

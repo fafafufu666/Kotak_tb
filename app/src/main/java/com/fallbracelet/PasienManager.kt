@@ -144,7 +144,8 @@ class PasienManager(
 
         val hariKe = LogikaKepatuhan.hariKe(mulai, hariIniTanggal)
         val sampai = minOf(hariIniTanggal, mulai.plusDays(a.pengobatan.totalHari - 1L))
-        val semua = RingkasanHarian.hari(mulai, sampai, riwayatJam, zona, sekarang, buka, manual, a.dosis)
+        val dipantau = RingkasanHarian.dipantauSejak(p.dipantauSejak, p.demo)
+        val semua = RingkasanHarian.hari(mulai, sampai, riwayatJam, zona, sekarang, buka, manual, a.dosis, dipantauSejak = dipantau)
         val statusHarian = semua.map { it.status }
         return KeadaanPasien(
             pengaturan = p,
@@ -179,7 +180,7 @@ class PasienManager(
     suspend fun mulai(nama: String, tanggalMulai: LocalDate, jamMinum: LocalTime) {
         dao.hapusJamMinum()
         dao.simpanJamMinum(JamMinumEntity(tanggalMulai.toString(), jamMinum.toSecondOfDay() / 60))
-        repo.mulai(nama, tanggalMulai)
+        repo.mulai(nama, tanggalMulai, System.currentTimeMillis())
     }
 
     /** A new `jam_minum` from today on; earlier days keep theirs. */
@@ -332,9 +333,14 @@ class PasienManager(
 
     suspend fun setDemoAktif(aktif: Boolean) = repo.setDemoAktif(aktif)
 
+    /**
+     * The days jumped over have no records, so they count as unknown, not missed: demo counting
+     * starts now unless a sample history already set an earlier start.
+     */
     suspend fun lompatKeHari(hariKe: Int) {
         val (waktu, _) = sekarang()
         repo.setDemoTanggalMulai(RingkasanHarian.tanggalMulaiUntukHariKe(waktu.atZone(zona).toLocalDate(), hariKe))
+        if (repo.pengaturan.first().demo.dipantauSejak == null) repo.setDemoDipantauSejak(waktu)
         repo.setDemoAktif(true)
     }
 
@@ -358,6 +364,10 @@ class PasienManager(
             JamMinumBerlaku(LocalDate.parse(it.berlakuMulai), LocalTime.ofSecondOfDay(it.menitDalamHari * 60L))
         }
         val buka = RingkasanHarian.riwayatContoh(k.hariIniTanggal, k.tanggalMulai, POLA_CONTOH, riwayatJam, zona)
+        // The sample's missed days must count, so demo counting starts at its oldest day.
+        val awal = RingkasanHarian.awalRiwayatContoh(k.hariIniTanggal, POLA_CONTOH, zona)
+        val sebelumnya = k.pengaturan.demo.dipantauSejak
+        if (sebelumnya == null || awal.isBefore(sebelumnya)) repo.setDemoDipantauSejak(awal)
         dao.hapusDemo()
         dao.tambahSemua(buka.map {
             KejadianPasien(

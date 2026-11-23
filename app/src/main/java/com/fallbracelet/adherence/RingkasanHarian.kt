@@ -28,6 +28,11 @@ data class PengaturanDemo(
     val geserJam: Duration = Duration.ZERO,
     /** Replaces the real start date ("Lompat ke hari"); null = keep the real one. */
     val tanggalMulai: LocalDate? = null,
+    /**
+     * Doses whose window closed before this (virtual) time are TANPA_DATA in demo mode; null =
+     * the real setup time. Set by "Lompat ke hari" and moved back by "Isi riwayat contoh".
+     */
+    val dipantauSejak: Instant? = null,
 )
 
 /**
@@ -44,6 +49,10 @@ object RingkasanHarian {
 
     fun tanggalMulai(nyata: LocalDate, demo: PengaturanDemo): LocalDate =
         if (demo.aktif) demo.tanggalMulai ?: nyata else nyata
+
+    /** From when doses count (see [LogikaKepatuhan.statusDosis]): the setup time, or demo mode's own. */
+    fun dipantauSejak(nyata: Instant?, demo: PengaturanDemo): Instant? =
+        if (demo.aktif) demo.dipantauSejak ?: nyata else nyata
 
     /** The start date that makes [hariIni] treatment day [hariKe] ("Lompat ke hari 58"). */
     fun tanggalMulaiUntukHariKe(hariIni: LocalDate, hariKe: Int): LocalDate =
@@ -70,7 +79,8 @@ object RingkasanHarian {
 
     /**
      * Every day from [tanggalMulai] to [hariIni] (both included), oldest first. Empty before
-     * the start. [bepergianPada] tells whether travel mode was on that day.
+     * the start. [bepergianPada] tells whether travel mode was on that day. Doses that closed
+     * before [dipantauSejak] with nothing recorded are TANPA_DATA.
      */
     fun hari(
         tanggalMulai: LocalDate,
@@ -82,6 +92,7 @@ object RingkasanHarian {
         konfirmasiManual: List<Instant>,
         dosis: AturanDosis,
         bepergianPada: (LocalDate) -> Boolean = { false },
+        dipantauSejak: Instant? = null,
     ): List<CatatanHari> {
         if (hariIni.isBefore(tanggalMulai) || riwayatJam.isEmpty()) return emptyList()
         val hasil = ArrayList<CatatanHari>()
@@ -89,7 +100,9 @@ object RingkasanHarian {
         while (!tanggal.isAfter(hariIni)) {
             val jam = jamMinumPada(tanggal, riwayatJam)!!
             val jadwal = LogikaKepatuhan.jadwal(tanggal, jam, zona, dosis)
-            val status = LogikaKepatuhan.statusDosis(jadwal, sekarang, pembukaanKotak, konfirmasiManual, bepergianPada(tanggal))
+            val status = LogikaKepatuhan.statusDosis(
+                jadwal, sekarang, pembukaanKotak, konfirmasiManual, bepergianPada(tanggal), dipantauSejak,
+            )
             hasil += CatatanHari(
                 tanggal = tanggal,
                 hariKe = LogikaKepatuhan.hariKe(tanggalMulai, tanggal),
@@ -136,6 +149,10 @@ object RingkasanHarian {
     fun dosisTercatat(hari: List<CatatanHari>): Int = hari.count { it.status.tercatat }
 
     // --- Demo history ----------------------------------------------------------------------
+
+    /** The start of the oldest day [riwayatContoh] fills for [pola]: demo counting starts there. */
+    fun awalRiwayatContoh(hariIni: LocalDate, pola: List<Boolean>, zona: ZoneId): Instant =
+        hariIni.minusDays(pola.size.toLong()).atStartOfDay(zona).toInstant()
 
     /**
      * Box-opening times for a sample history over the days before [hariIni]: one opening,
