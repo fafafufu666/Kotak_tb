@@ -4,6 +4,8 @@ import android.app.Application
 import com.fallbracelet.alert.AlertDispatcher
 import com.fallbracelet.caregiver.CaregiverManager
 import com.fallbracelet.data.AppDatabase
+import com.fallbracelet.data.PasienDatabase
+import com.fallbracelet.data.PasienRepository
 import com.fallbracelet.data.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -13,6 +15,8 @@ class FallBraceletApp : Application() {
     lateinit var manager: BraceletManager
         private set
     lateinit var caregiver: CaregiverManager
+        private set
+    lateinit var pasien: PasienManager
         private set
 
     override fun onCreate() {
@@ -27,6 +31,7 @@ class FallBraceletApp : Application() {
             alerts = alerts,
             scope = scope,
         )
+        pasien = PasienManager(this, PasienDatabase.create(this), PasienRepository(this), scope)
         caregiver = CaregiverManager(this, settings, alerts, scope, manager.finder) { manager.appSettings.value }
         manager.start()
         caregiver.start()
@@ -38,3 +43,6 @@ val android.content.Context.manager: BraceletManager
 
 val android.content.Context.caregiver: CaregiverManager
     get() = (applicationContext as FallBraceletApp).caregiver
+
+val android.content.Context.pasien: PasienManager
+    get() = (applicationContext as FallBraceletApp).pasien

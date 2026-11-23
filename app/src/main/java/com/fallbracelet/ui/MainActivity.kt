@@ -11,10 +11,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import com.fallbracelet.caregiver
+import com.fallbracelet.ui.pasien.PasienViewModel
 import com.fallbracelet.ui.theme.FallBraceletTheme
 
 class MainActivity : ComponentActivity() {
     private val vm: AppViewModel by viewModels()
+    private val pasien: PasienViewModel by viewModels()
 
     private val permissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         vm.retryConnect()
@@ -32,6 +34,7 @@ class MainActivity : ComponentActivity() {
             FallBraceletTheme {
                 App(
                     vm,
+                    pasien,
                     enableBluetooth = {
                         runCatching { enableBluetooth.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)) }
                     },

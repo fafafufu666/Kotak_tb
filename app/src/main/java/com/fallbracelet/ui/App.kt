@@ -45,6 +45,9 @@ import com.fallbracelet.data.AppMode
 import com.fallbracelet.ui.theme.AppTheme
 import com.fallbracelet.ui.theme.Mono
 import com.fallbracelet.ui.theme.Tokens
+import com.fallbracelet.ui.pasien.PasienApp
+import com.fallbracelet.ui.pasien.PasienViewModel
+import com.fallbracelet.ui.pasien.PilihModeScreen
 
 private enum class Tab(val label: String, val icon: ImageVector) {
     Home("Home", Icons.Filled.Home),
@@ -54,13 +57,21 @@ private enum class Tab(val label: String, val icon: ImageVector) {
 }
 
 @Composable
-fun App(vm: AppViewModel, enableBluetooth: () -> Unit) {
+fun App(vm: AppViewModel, pasien: PasienViewModel, enableBluetooth: () -> Unit) {
     val settings by vm.settings.collectAsState()
     when (settings.mode) {
-        null -> { ModeScreen(vm::setMode); return }
-        AppMode.CAREGIVER -> { CaregiverScreen(vm); return }
-        AppMode.WEARER -> Unit
+        null -> PilihModeScreen(vm::setMode)
+        AppMode.CAREGIVER -> CaregiverScreen(vm)
+        // Patient mode (PRD 6.1). The bracelet's own screens below are no longer reached.
+        AppMode.WEARER -> PasienApp(pasien, vm, enableBluetooth)
     }
+}
+
+/** The original bracelet wearer UI (Home, Events, Live, Settings), kept until the box firmware replaces it. */
+@Composable
+@Suppress("unused")
+private fun GelangApp(vm: AppViewModel, enableBluetooth: () -> Unit) {
+    val settings by vm.settings.collectAsState()
     if (settings.deviceAddress == null) {
         PairScreen(vm, enableBluetooth)
         return

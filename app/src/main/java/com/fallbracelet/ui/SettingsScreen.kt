@@ -205,7 +205,7 @@ private fun DeviceActions(vm: AppViewModel, connected: Boolean, name: String?, a
 
 /** Relay address, invites and linked caregivers (APP-9, APP-14). */
 @Composable
-private fun CaregiversCard(vm: AppViewModel) {
+internal fun CaregiversCard(vm: AppViewModel) {
     val settings by vm.settings.collectAsState()
     val invite by vm.invite.collectAsState()
     val caregivers by vm.caregivers.collectAsState()

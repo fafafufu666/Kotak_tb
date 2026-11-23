@@ -90,6 +90,9 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setMode(mode: AppMode) = edit { it[Keys.mode] = mode.name }
 
+    /** Back to the first-launch mode choice ("Berhenti ikut program"). */
+    suspend fun clearMode() = edit { it.remove(Keys.mode) }
+
     suspend fun setDevice(address: String?, name: String?) = edit {
         if (address == null) { it.remove(Keys.address); it.remove(Keys.name) }
         else { it[Keys.address] = address; it[Keys.name] = name ?: address }
