@@ -30,7 +30,7 @@ bracelet ──BLE──▶ wearer's phone ──HTTP──▶ relay (Pi) ──
 | ↳ [`kotak/`](app/src/main/java/com/fallbracelet/kotak/README.md) | The medicine box: protocol v2 and the simulated ESP32 |
 | ↳ [`ui/`](app/src/main/java/com/fallbracelet/ui/README.md) | Activity, view model, Compose screens |
 | [`firmware/`](firmware/README.md) | Arduino sketches, DevKit wiring, power and pre-release notes |
-| ↳ [`kotak_obat/`](firmware/kotak_obat/README.md) | The medicine box: BLE protocol v2 header (firmware to come) |
+| ↳ [`kotak_obat/`](firmware/kotak_obat/README.md) | The medicine box firmware (ESP32-C3, protocol v2); pins in `config.h` |
 | ↳ [`fall_bracelet/`](firmware/fall_bracelet/README.md) | The bracelet firmware |
 | ↳ [`fall_bracelet_oled/`](firmware/fall_bracelet_oled/README.md) | DevKit copy with an OLED status display |
 | ↳ [`ble_msg_test/`](firmware/ble_msg_test/README.md) | Stand-in bracelet for testing the app by hand |

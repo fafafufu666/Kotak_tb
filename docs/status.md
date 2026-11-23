@@ -30,6 +30,8 @@ Posisi: Tahap 0 sampai 3 sudah di `main`. Tahap 4 di cabang `tahap-4`, diuji di 
   - skenario 2 (mode demo): pada jam minum kotak berbunyi ("Kotak sedang berbunyi"); "Buka kotak (simulasi)" → bunyi berhenti, Beranda "Sudah diminum (kotak) · Tercatat 07.04", Riwayat "dari kotak, 07.04";
   - skenario 3: kotak di luar jangkauan, dibuka pukul 07.07 (jam kotak), jam aplikasi dimajukan ke 08.07, kotak didekatkan lagi → kejadian tersimpan 2,3 detik kemudian dengan waktu aslinya 07.07, Riwayat "dari kotak, 07.07".
 
+- Tahap 5 (firmware kotak, `firmware/kotak_obat`): dikompilasi untuk ESP32-C3 (esp32 core 3.3.12, NimBLE-Arduino 2.5.2) tanpa peringatan; 45% flash, 7% RAM. Semua pin dan polaritas di `config.h`, bisa juga diubah lewat `-D` saat kompilasi (dicoba: tutup di GPIO5, tanpa LED, buzzer di GPIO6, sensor terbalik, tanpa bonding → tetap terkompilasi).
+
 ## 3. Sudah dibuat tetapi belum diuji
 - Semua layar dan perilaku 2b belum pernah dijalankan di HP (tidak ada emulator di cloud): P1 Persetujuan, P5 Pengingat khusus (layar penuh, tombol, catatan tombol di Riwayat), notifikasi jam minum, terlambat, dan pengingat ulang lewat alarm Android, P7 PMO berbahasa Indonesia, kartu Relay di Pengaturan, peringatan izin di Beranda.
 - Migrasi `pasien.db` versi 1 ke 2 (tabel `log_pengingat` baru): APK 2b di tablet uji dipasang baru, bukan di atas 2a, jadi migrasi belum terbukti di HP. SQL migrasi sudah dicocokkan dengan tabel buatan Room dan sama persis.
@@ -39,6 +41,8 @@ Posisi: Tahap 0 sampai 3 sudah di `main`. Tahap 4 di cabang `tahap-4`, diuji di 
 - Dari 2a: riwayat dan pita "Nilai contoh" belum terlihat di tangkapan layar.
 
 - Tahap 4: kotak BLE asli (`TautanKotak` di atas kode GATT yang ada) dan `ble_msg_test` versi kotak dengan perintah `buka`/`tutup` belum dibuat, menunggu ESP32 terpasang ke laptop. Bunyi buzzer tiruan belum terdengar di uji (tablet dalam mode senyap; sekarang dipindah ke aliran alarm).
+
+- Tahap 5: firmware kotak belum pernah dijalankan di ESP32; aplikasi belum punya tautan BLE ke kotak asli (masih kotak tiruan). Keduanya diuji bersama begitu ESP32 terpasang ke laptop; daftar ceknya adalah `KotakSimulasiTest`.
 
 ## 4. Belum dikerjakan
 - Tahap 4 dengan ESP32 asli, Tahap 5 sampai 7 (firmware kotak, mode bepergian, uji skenario).
