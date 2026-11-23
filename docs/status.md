@@ -2,16 +2,16 @@
 
 ## 1. Tahap saat ini
 Tahap 0 (PRD bagian 11): fork siap, build APK debug apa adanya, ganti `applicationId` dan nama aplikasi.
-Posisi: build dan tes di GitHub Actions berhasil (pull request #1). Menunggu kamu memasang APK di HP dan menggabungkan pull request.
+Posisi: build berhasil, APK terpasang dan terbuka di perangkatmu. Menunggu pull request #1 digabungkan.
 
 ## 2. Sudah jadi dan sudah diuji
 - Pemeriksaan lingkungan cloud (23-11-2026): JDK 21 ada, Node 22 ada, Android SDK tidak ada, unduhan dari `dl.google.com` dan `maven.google.com` diblokir jaringan. Kesimpulan: APK tidak bisa di-build di cloud ini.
 
 - 23-11-2026, GitHub Actions run 45132401074: tes unit yang ada (4 file) lulus, APK debug ter-build tanpa Firebase (artifact `apk-debug`, 13,6 MB).
+- 23-11-2026 15.37 WIB: APK terpasang dan terbuka di perangkat Abyan; nama file tangkapan layar memuat `id.esgas.kotakobat`, jadi `applicationId` baru terbukti. Tampilan masih versi gelang (sesuai rencana).
 
 ## 3. Sudah dibuat tetapi belum diuji
-- `applicationId` `id.esgas.kotakobat` dan nama `[NAMA APLIKASI]` di APK: build sukses, tetapi isi APK belum bisa saya periksa (unduhan artifact diblokir dari cloud).
-- Pemasangan dan pembukaan APK di HP (langkahmu).
+- Nama ikon `[NAMA APLIKASI]` di layar HP belum dikonfirmasi.
 - Build dengan Firebase (secret `GOOGLE_SERVICES_JSON` belum dibuat).
 
 ## 4. Belum dikerjakan
@@ -26,7 +26,6 @@ Posisi: build dan tes di GitHub Actions berhasil (pull request #1). Menunggu kam
 
 ## 6. Menunggu dari saya
 - Nama aplikasi final (kapan saja).
-- Setelah build hijau: unduh dan pasang APK di HP, lalu laporkan apakah aplikasi terbuka.
 - Meninjau dan menggabungkan (merge) pull request Tahap 0.
 
 ## 7. Kendala dan risiko
@@ -38,4 +37,4 @@ Posisi: build dan tes di GitHub Actions berhasil (pull request #1). Menunggu kam
 - Tahap 3: timer ulang-kirim relay ditulis langsung di `relay/server.mjs` (2 menit, 5 kali, hanya FALL/SOS), sedangkan PRD meminta nilainya dari konfigurasi (30 menit, 3 kali, [CONTOH]). Perlu diputuskan saat Tahap 3.
 
 ## 8. Terakhir diperbarui
-23-11-2026, 14.55 WIB
+23-11-2026, 15.45 WIB
