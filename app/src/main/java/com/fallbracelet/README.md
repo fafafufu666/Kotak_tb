@@ -2,42 +2,38 @@
 
 ## Purpose
 
-All Kotlin source for the Android app. One app serves both the wearer's phone (talks to the
-bracelet over BLE and forwards events to the relay) and caregivers' phones (get alarms from
-the relay).
+All Kotlin source for the Android app. One app serves both the patient's phone (medicine box,
+reminders, dose record, ESKALASI and the daily summary to the relay) and the PMO's phone (gets
+ESKALASI from the relay, like the relay's web page).
 
 ## Contents
 
 | Path | What it does |
 |---|---|
-| `FallBraceletApp.kt` | `Application`: creates `AlertDispatcher`, `SettingsRepository`, the Room database, `BraceletManager` and `CaregiverManager`, and starts both. Adds `Context.manager` / `Context.caregiver` |
-| `PasienManager.kt` | Patient-mode owner: reads `assets/aturan_program.json` once at start, records box openings (`catatPembukaanKotak`, the one path for the simulated and the real box) and manual confirmations, runs demo mode, and works out `KeadaanPasien` (day, phase, today's dose, week, history, vulnerable day) every 15 s with `adherence/` |
-| `BraceletManager.kt` | Wearer-mode owner for the life of the process: connects to the paired bracelet, stores → alerts → ACKs → uploads each event, runs the relay loop (upload, heartbeat), reports link changes and the out-of-range warning, records trials |
-| [`ble/`](ble/README.md) | BLE protocol, scanner and GATT connection to the bracelet |
-| [`data/`](data/README.md) | Room event store and upload queue, DataStore settings, CSV recorder |
-| [`relay/`](relay/README.md) | HTTP client for the Pi relay and relay discovery on the local WiFi |
-| [`caregiver/`](caregiver/README.md) | Caregiver mode: push, live stream, full-screen alarm, acknowledgements |
-| [`ui/`](ui/README.md) | `MainActivity`, `AppViewModel` and all Compose screens; patient mode in `ui/pasien/` |
-| `alert/AlertDispatcher.kt` | Notification channels (alarm, info, connection) and every notification: wearer-phone alerts, caregiver alarms (insistent, full-screen, Acknowledge action), offline notices. Also the event message wording |
-| [`adherence/`](adherence/README.md) | Android-free medication rules (PRD section 7): treatment day and phase, daily dose status, vulnerable days, special-reminder choice, escalation; reads `assets/aturan_program.json` |
-| `alert/AlertRules.kt` | Android-free rules: what a caregiver's phone does per event type (`CaregiverAlert`), whether the wearer's phone notifies, when to warn the bracelet is out of range |
-| `service/BraceletService.kt` | Foreground service (`connectedDevice`) that keeps the process and BLE link alive with a status notification; `BootReceiver` reconnects after boot or an app update |
+| `FallBraceletApp.kt` | `Application`: deletes the bracelet app's leftovers (notification channels, `bracelet.db`, recordings), creates `SettingsRepository`, `HpManager`, `PasienManager`, `KotakManager` and `CaregiverManager`, and starts them. Adds `Context.manager` / `.pasien` / `.kotak` / `.caregiver` |
+| `HpManager.kt` | Phone settings and the relay link as the patient's phone: registration, nickname, heartbeat every 5 min (the relay tells the PMO when the phone goes quiet), relay discovery, box pairing address, mode switch |
+| `PasienManager.kt` | Patient-mode owner: reads `assets/aturan_program.json` once at start, records box openings (`catatPembukaanKotak`, the one path for the simulated and the real box) and manual confirmations, runs demo mode, works out `KeadaanPasien` every 15 s with `adherence/`, sends ESKALASI and STATUS_HARIAN |
+| [`adherence/`](adherence/README.md) | Android-free medication rules (PRD section 7) and the rules file reader |
+| [`kotak/`](kotak/README.md) | The medicine box: protocol v2, the simulated ESP32, `KotakManager` |
+| [`pengingat/`](pengingat/) | Reminder alarms and notifications (P5) |
+| [`ble/`](ble/README.md) | BLE scanner (P3) and the bracelet's GATT client, kept as the starting point for the real box's `TautanKotak` |
+| [`data/`](data/README.md) | DataStore settings, the patient database `pasien.db` |
+| [`relay/`](relay/README.md) | HTTP client for the relay and relay discovery on the local WiFi |
+| [`caregiver/`](caregiver/README.md) | PMO mode: live stream, push, ESKALASI notifications and alert screen, "Tandai dilihat" |
+| [`ui/`](ui/README.md) | `MainActivity`, `AppViewModel` and all Compose screens: patient mode in `ui/pasien/`, PMO mode in `ui/pmo/` |
+| `service/BootReceiver.kt` | After a reboot or an update: starts the app and sets the next reminder alarm again |
 
 ## How it works
 
 ```
-bracelet ─BLE─▶ BraceletConnection ─events─▶ BraceletManager.handle()
-                                               ├─ EventDao.insert (dedupe by deviceAddress+seq)
-                                               ├─ AlertDispatcher.notify (this phone)
-                                               ├─ BraceletConnection.ack(seq)  → bracelet drops it
-                                               └─ Uploader.flush → WearerRelay → Pi relay
-Pi relay ─FCM / SSE─▶ CaregiverManager ─▶ AlertDispatcher.caregiverAlarm / AlarmActivity
+box (simulated) ─protocol v2─▶ KotakManager ─▶ PasienManager ─ESKALASI / STATUS_HARIAN─▶ WearerRelay ─▶ relay
+relay ─SSE (FCM later)─▶ CaregiverManager ─▶ NotifikasiPmo / AlarmActivity / ui/pmo/PmoApp
 ```
 
-- The two managers live in `FallBraceletApp`, not in an activity, so they keep running while
-  the services hold the process.
-- Only one mode is active: `BraceletManager` connects only when `mode == WEARER`, and
-  `CaregiverManager` streams only when a caregiver token is set and `mode == CAREGIVER`.
+- The managers live in `FallBraceletApp`, not in an activity, so they keep running while the
+  services hold the process.
+- Only one mode is active: the patient side runs when `mode == WEARER`, and `CaregiverManager`
+  streams only when a PMO token is set and `mode == CAREGIVER`.
 
 ## Dependencies
 

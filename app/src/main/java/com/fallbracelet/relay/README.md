@@ -19,15 +19,15 @@ The caregiver side of the relay lives in [`caregiver/`](../caregiver/README.md).
 - The relay identifies itself with a `relayId` in `/v1/health`. When the Pi moves to another
   WiFi (for example a phone hotspot), discovery prefers the same `relayId`, so the phone's
   tokens and links survive the address change.
-- `BraceletManager.relayLoop()` drives this package every minute: check the relay, re-find it if
-  needed, register, flush the upload queue, and heartbeat every 5 minutes (every minute while an
-  alarm is unacknowledged).
+- `HpManager.relayLoop()` drives this package every minute: check the relay, re-find it if
+  needed, register, and heartbeat every 5 minutes. ESKALASI and STATUS_HARIAN go out from
+  `PasienManager`.
 
 ## Dependencies
 
 - `org.json` and `java.net` from the platform; no HTTP library.
-- `data/SettingsRepository` for the URL and tokens; `ble/BraceletStatus` for heartbeats.
-- Used by `BraceletManager`, `caregiver/CaregiverManager` (`RelayClient`, `RelayFinder`) and `ui/`.
+- `data/SettingsRepository` for the URL and tokens.
+- Used by `HpManager`, `PasienManager`, `caregiver/CaregiverManager` (`RelayClient`, `RelayFinder`) and `ui/`.
 - Server side and API table: [`relay/README.md`](../../../../../../../relay/README.md).
 
 ## Usage notes

@@ -3,7 +3,7 @@
 ## Purpose
 
 The core logic of PRD section 7, written as pure functions with no Android types so it is
-covered by JVM unit tests (same style as `alert/AlertRules.kt`). Every number and text comes
+covered by JVM unit tests (pure functions, no Android types). Every number and text comes
 from `app/src/main/assets/aturan_program.json` (PRD section 8); none is written in the code.
 Nothing in the app calls this package yet; the screens arrive in stage 2.
 

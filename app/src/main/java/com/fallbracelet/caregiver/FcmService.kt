@@ -6,7 +6,8 @@ import com.google.firebase.messaging.RemoteMessage
 
 /**
  * Firebase Cloud Messaging from the relay. Messages are data-only, so this runs even when the app
- * is in the background: FALL/SOS open the full-screen alarm, the rest become notifications.
+ * is in the background: an ESKALASI rings like it does over the live stream. Only used once the
+ * app is built with a Firebase project (`google-services.json`).
  */
 class FcmService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {

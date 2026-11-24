@@ -1,22 +1,18 @@
 package com.fallbracelet.caregiver
 
-import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.util.Log
-import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.fallbracelet.R
-import com.fallbracelet.alert.AlertDispatcher
 import com.fallbracelet.caregiver
-import com.fallbracelet.ui.MainActivity
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicInteger
@@ -45,13 +41,13 @@ internal class ForegroundStartGate {
     }
 }
 
-/** Keeps the caregiver's live stream to the relay open in the background, like a messaging app. */
+/** Keeps the PMO's live stream to the relay open in the background, like a messaging app. */
 class CaregiverService : LifecycleService() {
     private var started = false
 
     override fun onDestroy() {
         super.onDestroy()
-        NotificationManagerCompat.from(this).cancel(AlertDispatcher.CAREGIVER_SERVICE_ID)
+        NotificationManagerCompat.from(this).cancel(NotifikasiPmo.ID_LAYANAN)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -59,7 +55,7 @@ class CaregiverService : LifecycleService() {
         val requested = intent != null // null: the system restarted us, nobody called start()
         try {
             ServiceCompat.startForeground(
-                this, AlertDispatcher.CAREGIVER_SERVICE_ID, notification("Connecting to the relay…"),
+                this, NotifikasiPmo.ID_LAYANAN, notification(getString(R.string.pd_layanan_menyambung)),
                 if (Build.VERSION.SDK_INT >= 34) ServiceInfo.FOREGROUND_SERVICE_TYPE_REMOTE_MESSAGING else 0,
             )
         } catch (e: Exception) {
@@ -77,29 +73,22 @@ class CaregiverService : LifecycleService() {
             started = true
             val c = caregiver
             lifecycleScope.launch {
-                combine(c.stream, c.wearers) { s, w ->
-                    val names = w.joinToString { it.name }.ifEmpty { "nobody yet" }
-                    when (s) {
-                        StreamState.LIVE -> "Watching $names"
-                        else -> "Reconnecting to the relay…"
+                combine(c.stream, c.pasien) { s, p ->
+                    when {
+                        s != StreamState.LIVE -> getString(R.string.pd_layanan_menyambung)
+                        p.isEmpty() -> getString(R.string.pd_layanan_belum_ada)
+                        else -> getString(R.string.pd_layanan_mendampingi, p.joinToString { it.nama })
                     }
                 }.collect { text ->
                     @Suppress("MissingPermission")
-                    runCatching { NotificationManagerCompat.from(this@CaregiverService).notify(AlertDispatcher.CAREGIVER_SERVICE_ID, notification(text)) }
+                    runCatching { NotificationManagerCompat.from(this@CaregiverService).notify(NotifikasiPmo.ID_LAYANAN, notification(text)) }
                 }
             }
         }
         return START_STICKY
     }
 
-    private fun notification(text: String) = NotificationCompat.Builder(this, AlertDispatcher.CH_SERVICE)
-        .setSmallIcon(R.drawable.ic_stat_bracelet)
-        .setContentTitle("Fall bracelet caregiver")
-        .setContentText(text)
-        .setOngoing(true)
-        .setOnlyAlertOnce(true)
-        .setContentIntent(PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE))
-        .build()
+    private fun notification(text: String) = NotifikasiPmo(this).layanan(text)
 
     companion object {
         private const val TAG = "CaregiverService"
@@ -121,11 +110,11 @@ class CaregiverService : LifecycleService() {
     }
 }
 
-/** The Acknowledge button on an alarm notification. */
+/** "Tandai dilihat" on an ESKALASI notification. */
 class AckReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val id = intent.getLongExtra(EXTRA_EVENT_ID, -1)
-        if (id >= 0) context.caregiver.acknowledge(id)
+        if (id >= 0) context.caregiver.acknowledgeLater(id)
     }
 
     companion object {

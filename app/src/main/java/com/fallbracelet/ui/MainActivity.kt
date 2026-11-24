@@ -7,11 +7,11 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import com.fallbracelet.caregiver
 import com.fallbracelet.ui.pasien.PasienViewModel
+import com.fallbracelet.ui.pasien.tepiKeTepiTerang
 import com.fallbracelet.ui.theme.FallBraceletTheme
 
 class MainActivity : ComponentActivity() {
@@ -27,7 +27,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
+        tepiKeTepiTerang()
         super.onCreate(savedInstanceState)
         permissions.launch(requiredPermissions())
         setContent {
