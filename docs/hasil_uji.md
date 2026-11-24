@@ -59,6 +59,9 @@ Ini **uji awal** sebelum kotak asli jadi. Semua skenario dijalankan ulang dengan
    saluran notifikasi bawaan gelang berbahasa Inggris ("Fall and SOS alarms", "Bracelet updates",
    "Connection") yang terlihat di Pengaturan Android → Notifikasi aplikasi. Bukan kata terlarang,
    tetapi tidak sesuai dan sebaiknya dihapus.
+   **Tindak lanjut (24-11-2026, "Rapikan PMO"):** nama aplikasi kini "Tuntas" dan teks notifikasi
+   berisi usulan netral (`status_nilai` "USULAN", menunggu Abyan); kode gelang dihapus dan tiga
+   saluran lama dihapus saat aplikasi dibuka. Penghapusan saluran di tablet ini belum dicek ulang.
 7. APK uji dengan `min_terlewat_berturut: 1` (file di repo tetap 2; APK biasa dipasang lagi
    sesudahnya). Atur ulang demo, lompat ke hari 57, "Majukan ke batas terlewat" → ESKALASI
    dengan "terlewatBerturut 1" di relay 2,8 s kemudian (termasuk ±2 s pembacaan layar alat uji).
@@ -71,7 +74,7 @@ Ini **uji awal** sebelum kotak asli jadi. Semua skenario dijalankan ulang dengan
 - Kotak asli lewat BLE (pemasangan, bunyi buzzer, sensor tutup, antrean flash setelah mati listrik).
 - HP PMO terpisah, dan notifikasi di layar kunci HP PMO (butuh aplikasi PMO + Firebase, atau HTTPS).
 - Kirim ulang ESKALASI setelah 30 menit nyata (hanya di `relay/test.mjs` dengan selang dipersingkat).
-- Teks notifikasi final.
+- Teks notifikasi final (kini usulan Claude, menunggu persetujuan Abyan).
 
 **Catatan lain dari uji**
 

@@ -1,11 +1,11 @@
 # Status pengembangan
 
 ## 1. Tahap saat ini
-Tahap 7 (PRD bagian 11): uji awal skenario bagian 12 dengan kotak tiruan, cabang `tahap-7`.
-Posisi: Tahap 0 sampai 6 (P9) sudah di `main`. Hasil uji awal di `docs/hasil_uji.md`: 7 lulus, 1 lulus bersyarat (teks notifikasi final). Uji sesungguhnya menunggu kotak asli.
+Semua tahap yang bisa dikerjakan tanpa hardware sudah di `main` (dan di GitHub): Tahap 0 sampai 6 (P9), uji awal Tahap 7 dengan kotak tiruan, dan "Rapikan PMO" (mode PMO di aplikasi mengikuti halaman web relay, sisa kode gelang dihapus). Tidak ada cabang lain yang terbuka.
+Berikutnya: kotak asli (firmware di ESP32 + tautan BLE di aplikasi), lalu uji Tahap 7 sesungguhnya. Hasil uji awal di `docs/hasil_uji.md`: 7 lulus, 1 lulus bersyarat; syarat skenario 6 (teks notifikasi dan saluran gelang) sudah dikerjakan, tinggal dicek ulang.
 
 ## 2. Sudah jadi dan sudah diuji
-- Tahap 0 (di `main`): build APK lewat GitHub Actions, `applicationId` `id.esgas.kotakobat`, nama `[NAMA APLIKASI]`. APK terpasang dan terbuka di HP Abyan.
+- Tahap 0 (di `main`): build APK lewat GitHub Actions, `applicationId` `id.esgas.kotakobat`, nama `[NAMA APLIKASI]` (sejak 24-11-2026 "Tuntas"). APK terpasang dan terbuka di HP Abyan.
 - Tahap 1 (di `main`): logika PRD bagian 7 dan file aturan bagian 8.
 - Tahap 2a (di `main`): 65 tes unit lulus. Diuji di HP Abyan 23-11-2026 sekitar 17.05 WIB: Beranda, mode demo (lompat ke hari 58, majukan hari), atur ulang demo, dan kotak simulasi berjalan sesuai.
 - Tahap 2b: GitHub Actions run 45155539006 (23-11-2026): 83 tes unit lulus, 0 gagal (15 tes baru untuk jadwal pengingat, 3 untuk pembacaan teks persetujuan); APK ter-build. Ini hanya membuktikan logika dan kompilasi, belum perilaku di HP.
@@ -38,11 +38,10 @@ Posisi: Tahap 0 sampai 6 (P9) sudah di `main`. Hasil uji awal di `docs/hasil_uji
 - Tahap 7 uji awal (24-11-2026 01.05–01.20 WIB, kotak tiruan, relay laptop lewat WiFi): skenario 1–5, 7, 8 lulus; skenario 6 lulus bersyarat. Rincian dan angka di `docs/hasil_uji.md`.
 
 ## 3. Sudah dibuat tetapi belum diuji
-- Semua layar dan perilaku 2b belum pernah dijalankan di HP (tidak ada emulator di cloud): P1 Persetujuan, P5 Pengingat khusus (layar penuh, tombol, catatan tombol di Riwayat), notifikasi jam minum, terlambat, dan pengingat ulang lewat alarm Android, P7 PMO berbahasa Indonesia, kartu Relay di Pengaturan, peringatan izin di Beranda.
 - Migrasi `pasien.db` versi 1 ke 2 (tabel `log_pengingat` baru): APK 2b di tablet uji dipasang baru, bukan di atas 2a, jadi migrasi belum terbukti di HP. SQL migrasi sudah dicocokkan dengan tabel buatan Room dan sama persis.
 - P1 Persetujuan (sudah disetujui sebelum uji), notifikasi biasa pada hari bukan hari rawan, dan pengingat TERLAMBAT belum dilihat di HP.
 - P5 di atas layar kunci sesudah izin Xiaomi "Tampil di Layar kunci" dinyalakan belum diuji ulang.
-- Tahap 3: ulang-kirim ESKALASI setelah 30 menit nyata; push FCM ke HP PMO (Firebase belum dipakai); halaman PMO di HP lain lewat WiFi/hotspot (uji memakai USB).
+- Tahap 3: ulang-kirim ESKALASI setelah 30 menit nyata; push FCM ke HP PMO (Firebase belum dipakai); halaman PMO di HP lain lewat WiFi saja (uji di HP lain baru lewat USB).
 - Dari 2a: riwayat dan pita "Nilai contoh" belum terlihat di tangkapan layar.
 
 - Tahap 4: kotak BLE asli (`TautanKotak` di atas kode GATT yang ada) dan `ble_msg_test` versi kotak dengan perintah `buka`/`tutup` belum dibuat, menunggu ESP32 terpasang ke laptop. Bunyi buzzer tiruan belum terdengar di uji (tablet dalam mode senyap; sekarang dipindah ke aliran alarm).
@@ -50,10 +49,13 @@ Posisi: Tahap 0 sampai 6 (P9) sudah di `main`. Hasil uji awal di `docs/hasil_uji
 - Tahap 5: firmware kotak belum pernah dijalankan di ESP32; aplikasi belum punya tautan BLE ke kotak asli (masih kotak tiruan). Keduanya diuji bersama begitu ESP32 terpasang ke laptop; daftar ceknya adalah `KotakSimulasiTest`.
 
 - Rapikan PMO (24-11-2026, build lokal, 119 tes unit lulus; diuji di HP Samsung SM-G990E lewat adb dengan relay di laptop dan pasien tiruan lewat curl: tautkan dengan kode, ringkasan harian dan deret 7 hari, kotak kabar + notifikasi, "Nanti" lalu muncul lagi saat dikirim ulang, "Tandai dilihat" sampai ke pasien sebagai "Dilihat oleh Sari", layar kabar penuh di atas layar kunci; ikon bilah status kini gelap; notifikasi PMO tidak lagi dibundel Android; layanan latar PMO dicoba lagi saat aplikasi dibuka karena Android menolak memulainya dari latar sesudah pembaruan APK): mode PMO di aplikasi Android ditulis ulang mengikuti halaman web relay (bahasa Indonesia, ESKALASI, deret 7 hari, "Tandai dilihat"/"Nanti", layar kabar di atas layar kunci); sisa kode gelang dihapus (layar Home/Events/Live/Settings, layanan gelang, database dan antrean kejadian gelang, rekaman sensor, tiga saluran notifikasi berbahasa Inggris, yang kini dihapus saat aplikasi dibuka). `ble/BraceletConnection` disimpan sebagai titik awal `TautanKotak` asli.
+- Belum diuji dari Rapikan PMO: penghapusan tiga saluran notifikasi lama pada pembaruan di atas versi lama (HP Samsung belum pernah punya saluran itu), push FCM dengan `detail`, dan mode pasien di HP Samsung sesudah kode gelang dihapus (mode pasien diuji ulang hanya lewat tes unit).
 
 ## 4. Belum dikerjakan
-- Tahap 4 dengan ESP32 asli, Tahap 5 sampai 7 (firmware kotak, mode bepergian, uji skenario).
-- Tombol "Hubungi" di halaman PMO (PRD M2): aplikasi belum punya isian nomor HP pasien.
+- Kotak asli: menjalankan firmware di ESP32, `TautanKotak` (tautan BLE aplikasi ke kotak asli, di atas `ble/`), dan `ble_msg_test` versi kotak. Menunggu ESP32 terpasang ke laptop.
+- Uji Tahap 7 sesungguhnya (PRD bagian 12) dengan kotak asli dan HP PMO terpisah.
+- Tombol "Hubungi" untuk PMO (PRD M2), di halaman web dan di aplikasi: aplikasi belum punya isian nomor HP pasien.
+- Push FCM: proyek Firebase sendiri (`google-services.json`) belum dibuat; tanpa itu HP PMO memakai layanan latar dengan pemberitahuan tetap.
 
 ## 5. Keputusan saya
 - 23-11-2026: dosis yang lewat tengah malam dihitung ke tanggal jam minum.
@@ -82,7 +84,7 @@ Asumsi Claude di Tahap 1 (belum kamu konfirmasi; bisa diubah):
 Asumsi Claude di Tahap 2a:
 - Status dosis dihitung langsung dari catatan pembukaan kotak dan konfirmasi manual, tidak disimpan sebagai tabel dosis harian. Perubahan jam minum berlaku mulai hari diubah.
 - Tombol "Buka kotak (simulasi)" ada di Beranda selama belum ada kotak asli; pembukaan di luar mode demo dihitung sebagai data nyata.
-- Data pasien di database terpisah (`pasien.db`); layar gelang lama tidak dipakai tetapi kodenya belum dihapus.
+- Data pasien di database terpisah (`pasien.db`); layar gelang lama tidak dipakai tetapi kodenya belum dihapus. (Sudah dihapus 24-11-2026, termasuk `bracelet.db` di HP.)
 
 Asumsi Claude untuk "Belum dipantau":
 - Batasnya waktu pasien menyelesaikan P2; untuk pemasangan lama yang belum menyimpan waktu itu, waktu persetujuan P1.
@@ -119,14 +121,14 @@ Asumsi Claude di Tahap 2b:
 - Alamat relay dipindah dari tab PMO ke Pengaturan (sesuai PRD P8). Peringatan relay dan internet di Beranda menunggu Tahap 3.
 
 ## 6. Menunggu dari saya
-- Pasang APK 2b di atas APK 2a (tanpa menghapus), jalankan langkah uji di pull request 2b, dan laporkan hasilnya.
-- Menggabungkan pull request 2b (#4), lalu pull request Tahap 3.
 - Untuk demo: laptop, HP pasien, dan HP/laptop PMO di satu WiFi atau hotspot; port 8787 dibuka di firewall laptop.
 - Cek usulan Claude (24-11-2026): nama aplikasi "Tuntas", nilai dan teks di `aturan_program.json` (`status_nilai` "USULAN"), lalu ganti `status_nilai` ke FINAL bila setuju. Teks persetujuan di `app/src/main/assets/persetujuan.md` masih menunggu.
+- Memutuskan apakah prototipe perlu lama pengobatan per pasien (paduan 4 bulan atau 9–12 bulan; lihat bagian 7) atau cukup 168 hari untuk semua.
+- Menyambungkan ESP32 ke laptop untuk Tahap kotak asli.
 - Coba penghapusan tiga saluran notifikasi lama di HP yang pernah memasang versi lama aplikasi ini (misalnya tablet Xiaomi); HP Samsung uji belum pernah punya saluran itu.
 
 ## 7. Kendala dan risiko
-- Cloud ini tidak bisa mengunduh Android SDK atau file hasil build, jadi build dan tes aplikasi hanya berjalan di GitHub Actions.
+- Di cloud Android SDK tidak bisa diunduh, jadi di sana build dan tes hanya lewat GitHub Actions. Di laptop (sejak uji tablet) build, tes unit, dan pemasangan lewat adb berjalan lokal.
 - Android 12 ke atas meminta izin "Alarm & pengingat" untuk alarm tepat waktu; tanpa izin itu pengingat bisa terlambat beberapa menit. Beberapa merek HP (misalnya Xiaomi, Oppo, Vivo) juga menahan aplikasi di latar walau izin sudah diberikan.
 - Xiaomi (HyperOS): tanpa izin "Tampil di Layar kunci" P5 tidak bisa tampil di atas layar kunci (hanya notifikasi). Di tablet uji, izin layar penuh Android juga kembali mati beberapa detik sesudah setiap pembaruan APK; kartu peringatan menampilkannya lagi dan harus dinyalakan ulang.
 - Kunci debug di repo publik: siapa pun bisa membuat APK yang ditandatangani dengan kunci yang sama. Aman selama hanya APK dari GitHub Actions repo ini yang dipasang.
@@ -136,4 +138,4 @@ Asumsi Claude di Tahap 2b:
 - Lama pengobatan sudah dicek (24-11-2026) ke Juknis Penatalaksanaan TB Sensitif Obat (Kepdirjen P2 HK.02.02/C/5401/2025, hlm. 51–53): 2HRZE/4HR setiap hari, 1 bulan pengobatan = 28 hari, jadi 56 + 112 = 168 hari. Pasien dengan paduan 4 bulan (2HPMZ/2HPM) atau TB ekstra paru berat (9–12 bulan) butuh `total_hari` lain; aplikasi hanya punya satu nilai untuk semua pasien.
 
 ## 8. Terakhir diperbarui
-24-11-2026, 15.50 WIB
+24-11-2026, sesudah "Rapikan PMO" digabung ke `main` dan di-push
