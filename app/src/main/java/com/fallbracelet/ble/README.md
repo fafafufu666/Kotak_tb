@@ -31,7 +31,7 @@ turning its bytes into Kotlin types. Used only in wearer mode.
 
 - Mirrors `firmware/fall_bracelet/ble_protocol.h`; the contract is in
   [`PROTOCOL.md`](../../../../../../../PROTOCOL.md). Change all three together and bump `VERSION`.
-- Used by `BraceletManager` (owns the connection), `ui/` (scanner, commands) and `data/Recorder`
+- `BleScanner` is used by `ui/AppViewModel` (P3 box pairing). `BraceletConnection` and the bracelet protocol are no longer connected to anything; they stay as the GATT starting point for the real box (`kotak/TautanKotak`)
   (`AccelSample`). `EventType` is also used by `alert/` and `caregiver/`.
 - Android Bluetooth APIs and kotlinx-coroutines only.
 

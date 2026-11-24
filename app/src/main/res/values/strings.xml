@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">[NAMA APLIKASI]</string>
+    <string name="app_name">Tuntas</string>
     <string name="default_relay_url" translatable="false"></string>
 
     <!-- Pilih mode (layar pertama) -->
@@ -229,4 +229,88 @@
     <string name="atur_relay_tidak_ditemukan">Relay tidak ditemukan di WiFi ini. Pastikan relay dan HP ada di jaringan yang sama.</string>
     <string name="atur_disetujui">Persetujuan: %1$s</string>
     <string name="atur_versi_aturan">Status file aturan: %1$s</string>
+
+    <!-- PMO mode (PRD 6.2), same wording as relay/web/index.html. Neutral: no diagnosis, no medicine names. -->
+    <string name="pd_judul">Pendamping</string>
+    <string name="pd_sub">Menerima kabar dosis terlewat dari pasien yang kamu dampingi.</string>
+    <string name="pd_masuk_sebagai">Masuk sebagai %1$s</string>
+    <string name="pd_pasien">Pasien</string>
+    <string name="pd_pendamping_untuk">Pendamping untuk</string>
+    <string name="pd_demo">DEMO</string>
+    <string name="pd_demo_kurung">(demo)</string>
+    <string name="pd_hp_terputus">HP pasien terputus</string>
+    <string name="pd_hp_tersambung">HP pasien tersambung</string>
+    <string name="pd_hari_dari">Hari %1$d dari %2$d</string>
+    <string name="pd_hari">Hari %1$d</string>
+    <string name="pd_hari_ke">hari ke-%1$d</string>
+    <string name="pd_kabar_terakhir">kabar terakhir %1$s</string>
+    <string name="pd_bepergian_sampai">Mode bepergian sampai %1$s</string>
+    <string name="pd_bepergian_isi">Pasien bepergian tanpa kotak dan mengonfirmasi sendiri setiap kali minum obat.</string>
+    <string name="pd_dosis_terlewat">Dosis terlewat</string>
+    <string name="pd_terlewat_berturut">%1$d dosis terlewat berturut-turut</string>
+    <string name="pd_terakhir_dibuka">Terakhir dibuka: %1$s</string>
+    <string name="pd_belum_pernah_dibuka">Kotak belum pernah dibuka</string>
+    <string name="pd_hari_rawan">Hari rawan</string>
+    <string name="pd_kabar_lain_belum">%1$d kabar lain belum dilihat</string>
+    <string name="pd_kabar_lain_menunggu">%1$d kabar lain menunggu</string>
+    <string name="pd_tandai_dilihat">Tandai dilihat</string>
+    <string name="pd_mengirim">Mengirim…</string>
+    <string name="pd_gagal_coba_lagi">Gagal mengirim, coba lagi</string>
+    <string name="pd_nanti">Nanti</string>
+    <string name="pd_tujuh_hari">7 hari terakhir</string>
+    <string name="pd_belum_ada_ringkasan">Belum ada ringkasan dari HP pasien.</string>
+    <string name="pd_keterangan_minggu">✓ diminum (atau dikonfirmasi saat bepergian) · ✗ terlewat · ! terlambat · • belum · – belum dipantau</string>
+    <string name="pd_kabar">Kabar</string>
+    <string name="pd_belum_ada_kabar">Belum ada kabar dosis terlewat.</string>
+    <string name="pd_dikirim">dikirim %1$s</string>
+    <string name="pd_diulang">, diulang %1$d×</string>
+    <string name="pd_dilihat_oleh">Dilihat oleh %1$s, %2$s</string>
+    <string name="pd_belum_mendampingi">Belum mendampingi siapa pun.</string>
+    <string name="pd_relay">Relay</string>
+    <string name="pd_tersambung">Tersambung</string>
+    <string name="pd_lewat_push">Lewat push</string>
+    <string name="pd_menyambung">Menyambung…</string>
+    <string name="pd_terputus">Terputus</string>
+    <string name="pd_hubungkan_judul">Hubungkan dengan pasien</string>
+    <string name="pd_hubungkan_isi">Di HP pasien: tab PMO → Buat kode undangan. Ketik 6 angkanya di sini.</string>
+    <string name="pd_kode">Kode undangan</string>
+    <string name="pd_nama_kamu">Nama kamu (tampil sebagai \"Dilihat oleh …\")</string>
+    <string name="pd_alamat_relay">Alamat relay</string>
+    <string name="pd_cari_relay">Cari relay di WiFi ini</string>
+    <string name="pd_mencari">Mencari…</string>
+    <string name="pd_hubungkan">Hubungkan</string>
+    <string name="pd_menghubungkan">Menghubungkan…</string>
+    <string name="pd_terhubung_dengan">Terhubung dengan %1$s.</string>
+    <string name="pd_kode_salah">Kode salah atau sudah kedaluwarsa. Minta kode baru ke pasien.</string>
+    <string name="pd_gagal_menghubungkan">Gagal menghubungkan.</string>
+    <string name="pd_dampingi_lain">Dampingi pasien lain</string>
+    <string name="pd_keluar">Keluar dari HP ini</string>
+    <string name="pd_keluar_judul">Keluar?</string>
+    <string name="pd_keluar_isi">Berhenti menerima kabar di HP ini?</string>
+    <string name="pd_keluar_ya">Keluar</string>
+    <string name="pd_pakai_sebagai_pasien">Pakai HP ini sebagai HP pasien</string>
+    <string name="pd_kamu">kamu</string>
+    <string name="pd_baru_saja">baru saja</string>
+    <string name="pd_menit_lalu">%1$d menit lalu</string>
+    <string name="pd_jam_lalu">%1$d jam lalu</string>
+    <string name="pd_hari_lalu">%1$d hari lalu</string>
+    <string name="pd_galat_relay">Relay tidak bisa dihubungi. Mencoba lagi…</string>
+    <string name="pd_galat_tandai">\"Tandai dilihat\" belum terkirim.</string>
+    <string name="pd_galat_dilepas">HP ini sudah dilepas oleh pasien. Hubungkan lagi dengan kode baru.</string>
+    <string name="pd_izin_judul">Kabar bisa tidak sampai</string>
+    <string name="pd_izin_notifikasi">Notifikasi mati, jadi kabar dosis terlewat tidak muncul di HP ini.</string>
+    <string name="pd_izin_layar_penuh">Layar penuh tidak diizinkan, jadi kabar hanya muncul sebagai notifikasi biasa saat HP terkunci.</string>
+    <string name="pd_izin_baterai">Penghemat baterai bisa menghentikan aplikasi di latar, jadi kabar bisa terlewat.</string>
+    <string name="pd_izin_jaringan">Tidak ada jaringan, jadi kabar tidak bisa sampai.</string>
+    <string name="pd_saluran_kabar">Kabar dosis terlewat</string>
+    <string name="pd_saluran_kabar_isi">Saat pasien yang didampingi melewatkan dosis beberapa hari berturut-turut</string>
+    <string name="pd_saluran_info">Info pendampingan</string>
+    <string name="pd_saluran_info_isi">HP pasien terputus, mode bepergian</string>
+    <string name="pd_saluran_sambungan">Sambungan ke relay</string>
+    <string name="pd_saluran_sambungan_isi">Tampil selama aplikasi menjaga sambungan ke relay di latar</string>
+    <string name="pd_notif_terputus">HP pasien tidak terhubung sejak 15 menit lalu.</string>
+    <string name="pd_notif_bepergian">Mode bepergian aktif sampai %1$s.</string>
+    <string name="pd_layanan_menyambung">Menyambung ke relay…</string>
+    <string name="pd_layanan_belum_ada">Belum mendampingi siapa pun</string>
+    <string name="pd_layanan_mendampingi">Mendampingi %1$s</string>
 </resources>

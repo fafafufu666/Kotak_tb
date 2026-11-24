@@ -54,6 +54,8 @@ export function pushPayload(type, data) {
           kind: 'event', id: data.id, wearerId: data.wearerId, wearerName: data.wearerName, type: data.type,
           batteryPct: data.batteryPct, occurredAt: data.occurredAt, impactG: data.impactG, message: data.message,
           escalated: data.escalated ? 1 : 0, escalations: data.escalations,
+          // ESKALASI: what the app's alert shows (dose count, last box opening) and which mode it belongs to.
+          receivedAt: data.receivedAt, demo: data.demo ? 1 : 0, detail: data.detail ? JSON.stringify(data.detail) : null,
         }),
       };
     case 'offline':

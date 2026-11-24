@@ -1,5 +1,8 @@
 package com.fallbracelet.ui.pasien
 
+import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -72,6 +75,15 @@ private val huruf = Typography().run {
         headlineMedium = headlineMedium.copy(fontWeight = FontWeight.SemiBold),
         labelLarge = labelLarge.copy(fontSize = 17.sp),
     )
+}
+
+/**
+ * Edge to edge with dark status-bar icons. The app is always light (teal and white), so the icons
+ * must not follow the phone's dark mode, which made them white on white.
+ */
+fun ComponentActivity.tepiKeTepiTerang() {
+    val bening = android.graphics.Color.TRANSPARENT
+    enableEdgeToEdge(statusBarStyle = SystemBarStyle.light(bening, bening))
 }
 
 @Composable

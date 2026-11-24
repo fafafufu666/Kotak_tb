@@ -42,19 +42,18 @@ Posisi: Tahap 0 sampai 6 (P9) sudah di `main`. Hasil uji awal di `docs/hasil_uji
 - Migrasi `pasien.db` versi 1 ke 2 (tabel `log_pengingat` baru): APK 2b di tablet uji dipasang baru, bukan di atas 2a, jadi migrasi belum terbukti di HP. SQL migrasi sudah dicocokkan dengan tabel buatan Room dan sama persis.
 - P1 Persetujuan (sudah disetujui sebelum uji), notifikasi biasa pada hari bukan hari rawan, dan pengingat TERLAMBAT belum dilihat di HP.
 - P5 di atas layar kunci sesudah izin Xiaomi "Tampil di Layar kunci" dinyalakan belum diuji ulang.
-- Tahap 3: ulang-kirim ESKALASI setelah 30 menit nyata; push FCM ke HP PMO (Firebase belum dipakai); mode PMO di aplikasi Android (masih tampilan lama berbahasa Inggris, tidak dipakai karena PMO memakai halaman web); halaman PMO di HP lain lewat WiFi/hotspot (uji memakai USB).
+- Tahap 3: ulang-kirim ESKALASI setelah 30 menit nyata; push FCM ke HP PMO (Firebase belum dipakai); halaman PMO di HP lain lewat WiFi/hotspot (uji memakai USB).
 - Dari 2a: riwayat dan pita "Nilai contoh" belum terlihat di tangkapan layar.
 
 - Tahap 4: kotak BLE asli (`TautanKotak` di atas kode GATT yang ada) dan `ble_msg_test` versi kotak dengan perintah `buka`/`tutup` belum dibuat, menunggu ESP32 terpasang ke laptop. Bunyi buzzer tiruan belum terdengar di uji (tablet dalam mode senyap; sekarang dipindah ke aliran alarm).
 
 - Tahap 5: firmware kotak belum pernah dijalankan di ESP32; aplikasi belum punya tautan BLE ke kotak asli (masih kotak tiruan). Keduanya diuji bersama begitu ESP32 terpasang ke laptop; daftar ceknya adalah `KotakSimulasiTest`.
 
-- Temuan uji awal: tiga saluran notifikasi bawaan gelang berbahasa Inggris ("Fall and SOS alarms", "Bracelet updates", "Connection") masih dibuat aplikasi dan terlihat di pengaturan notifikasi Android.
+- Rapikan PMO (24-11-2026, build lokal, 119 tes unit lulus; diuji di HP Samsung SM-G990E lewat adb dengan relay di laptop dan pasien tiruan lewat curl: tautkan dengan kode, ringkasan harian dan deret 7 hari, kotak kabar + notifikasi, "Nanti" lalu muncul lagi saat dikirim ulang, "Tandai dilihat" sampai ke pasien sebagai "Dilihat oleh Sari", layar kabar penuh di atas layar kunci; ikon bilah status kini gelap; notifikasi PMO tidak lagi dibundel Android; layanan latar PMO dicoba lagi saat aplikasi dibuka karena Android menolak memulainya dari latar sesudah pembaruan APK): mode PMO di aplikasi Android ditulis ulang mengikuti halaman web relay (bahasa Indonesia, ESKALASI, deret 7 hari, "Tandai dilihat"/"Nanti", layar kabar di atas layar kunci); sisa kode gelang dihapus (layar Home/Events/Live/Settings, layanan gelang, database dan antrean kejadian gelang, rekaman sensor, tiga saluran notifikasi berbahasa Inggris, yang kini dihapus saat aplikasi dibuka). `ble/BraceletConnection` disimpan sebagai titik awal `TautanKotak` asli.
 
 ## 4. Belum dikerjakan
 - Tahap 4 dengan ESP32 asli, Tahap 5 sampai 7 (firmware kotak, mode bepergian, uji skenario).
 - Tombol "Hubungi" di halaman PMO (PRD M2): aplikasi belum punya isian nomor HP pasien.
-- Mode PMO di aplikasi Android masih tampilan lama berbahasa Inggris; tidak dipakai selama PMO memakai halaman web.
 
 ## 5. Keputusan saya
 - 23-11-2026: dosis yang lewat tengah malam dihitung ke tanggal jam minum.
@@ -67,6 +66,9 @@ Posisi: Tahap 0 sampai 6 (P9) sudah di `main`. Hasil uji awal di `docs/hasil_uji
 - 23-11-2026: Tahap 2 dibagi 2a dan 2b; kunci debug tetap disimpan di repo (`app/kotakobat-debug.keystore`); mockup dikirim di Tahap 6; "Ingatkan x menit lagi" memakai `pengingat_ulang.jarak_menit`.
 - 23-11-2026: rencana 2b disetujui (P1 dari `persetujuan.md` berisi penanda, P5 + notifikasi AlarmManager, P7 Indonesia, banner izin). PR #3 digabung 17.10 WIB.
 - 23-11-2026: dosis yang jendelanya sudah tutup sebelum aplikasi dipasang tidak dihitung terlewat (status baru "Belum dipantau"); relay Tahap 3 dijalankan di laptop; sisi PMO memakai halaman web relay; nilai ulang-kirim eskalasi ikut dikirim aplikasi di setiap kejadian ESKALASI.
+
+- 24-11-2026 (atas permintaan): nama aplikasi "Tuntas" (netral, tanpa kata TB, sesuai pesan utama "tuntaskan pengobatan"); `total_hari` 168 dan `fase_intensif_hari` 56 menurut juknis 2025; tiga pesan hari rawan dan tiga teks notifikasi netral ditulis Claude; nilai jendela dosis, hari rawan, eskalasi, dan bepergian dibiarkan seperti contoh PRD; `status_nilai` = "USULAN" (pita "Nilai contoh" tidak tampil lagi).
+- 24-11-2026: mode PMO di aplikasi mengikuti halaman web relay; push FCM membawa `detail`, `demo`, dan `receivedAt` ESKALASI.
 
 Asumsi Claude di Tahap 1 (belum kamu konfirmasi; bisa diubah):
 - Pola "dalam N hari terakhir" ikut menghitung hari ini.
@@ -120,7 +122,8 @@ Asumsi Claude di Tahap 2b:
 - Pasang APK 2b di atas APK 2a (tanpa menghapus), jalankan langkah uji di pull request 2b, dan laporkan hasilnya.
 - Menggabungkan pull request 2b (#4), lalu pull request Tahap 3.
 - Untuk demo: laptop, HP pasien, dan HP/laptop PMO di satu WiFi atau hotspot; port 8787 dibuka di firewall laptop.
-- Nama aplikasi final, nilai dan teks [DIISI ABYAN] di `aturan_program.json` (termasuk teks notifikasi), dan teks persetujuan di `app/src/main/assets/persetujuan.md` (kapan saja).
+- Cek usulan Claude (24-11-2026): nama aplikasi "Tuntas", nilai dan teks di `aturan_program.json` (`status_nilai` "USULAN"), lalu ganti `status_nilai` ke FINAL bila setuju. Teks persetujuan di `app/src/main/assets/persetujuan.md` masih menunggu.
+- Coba penghapusan tiga saluran notifikasi lama di HP yang pernah memasang versi lama aplikasi ini (misalnya tablet Xiaomi); HP Samsung uji belum pernah punya saluran itu.
 
 ## 7. Kendala dan risiko
 - Cloud ini tidak bisa mengunduh Android SDK atau file hasil build, jadi build dan tes aplikasi hanya berjalan di GitHub Actions.
@@ -130,7 +133,7 @@ Asumsi Claude di Tahap 2b:
 - Alamat relay bawaan build debug (`192.168.0.104`) adalah alamat Pi di rumah saudara; perlu "Cari relay" atau diganti saat demo.
 - Halaman PMO hanya berbunyi selama terbuka di depan dan layar menyala; browser tidak bisa membangunkan HP terkunci, dan notifikasi browser butuh HTTPS (tidak ada di `http://` LAN). Chrome juga membekukan sambungan tab yang tidak tampil; halaman menyambung ulang saat tampil lagi.
 - Dosis yang jadi TERLEWAT diperiksa lewat alarm di batas terlewat. Bila Android menahan aplikasi di latar (lihat Xiaomi di atas), ESKALASI baru terkirim saat aplikasi bangun lagi.
-- Lama pengobatan dan fase di konfigurasi masih [CONTOH]; perlu dicek ke PNPK TB [CEK].
+- Lama pengobatan sudah dicek (24-11-2026) ke Juknis Penatalaksanaan TB Sensitif Obat (Kepdirjen P2 HK.02.02/C/5401/2025, hlm. 51–53): 2HRZE/4HR setiap hari, 1 bulan pengobatan = 28 hari, jadi 56 + 112 = 168 hari. Pasien dengan paduan 4 bulan (2HPMZ/2HPM) atau TB ekstra paru berat (9–12 bulan) butuh `total_hari` lain; aplikasi hanya punya satu nilai untuk semua pasien.
 
 ## 8. Terakhir diperbarui
-24-11-2026, 01.25 WIB
+24-11-2026, 15.50 WIB

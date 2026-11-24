@@ -1,17 +1,26 @@
 {
-  "status_nilai": "CONTOH - belum ditetapkan Abyan",
-  "pengobatan": { "total_hari": 180, "fase_intensif_hari": 56 },
+  "status_nilai": "USULAN - diusulkan Claude 24-11-2026, belum ditetapkan Abyan",
+  "pengobatan": {
+    "total_hari": 168,
+    "fase_intensif_hari": 56
+  },
   "dosis": {
     "jendela_awal_menit": 120,
     "batas_terlambat_menit": 60,
     "batas_terlewat_menit": 240,
-    "pengingat_ulang": { "jumlah": 2, "jarak_menit": 30 },
+    "pengingat_ulang": {
+      "jumlah": 2,
+      "jarak_menit": 30
+    },
     "durasi_alarm_kotak_menit": 10
   },
   "hari_rawan": {
     "rentang_hari": [[14, 28], [50, 70]],
     "tanggal_libur": [],
-    "pola": { "dalam_hari": 7, "min_terlewat": 1 },
+    "pola": {
+      "dalam_hari": 7,
+      "min_terlewat": 1
+    },
     "gabungan": "SALAH_SATU",
     "maks_per_hari": 2
   },
@@ -20,19 +29,54 @@
     "ulang_kirim_menit": 30,
     "maks_ulang": 3
   },
-  "mode_bepergian": { "maks_hari": 7, "eskalasi_aktif": true },
+  "mode_bepergian": {
+    "maks_hari": 7,
+    "eskalasi_aktif": true
+  },
   "pesan": [
     {
       "id": "pesan_1",
       "kapan": "HARI_RAWAN",
       "judul": "Pengingat khusus hari ini",
-      "isi": "[Teks pesan pengingat - DIISI ABYAN]",
-      "variabel_tersedia": ["{nama}", "{hari_ke}", "{sisa_hari}", "{total_hari}", "{dosis_tercatat}"]
+      "isi": "{nama}, badan yang terasa lebih enak artinya pengobatan sedang bekerja, belum berarti sudah sembuh. Kumannya baru benar-benar habis bila pengobatan dituntaskan. Hari ini hari ke-{hari_ke} dari {total_hari}, tinggal {sisa_hari} hari lagi.",
+      "variabel_tersedia": [
+        "{nama}",
+        "{hari_ke}",
+        "{sisa_hari}",
+        "{total_hari}",
+        "{dosis_tercatat}"
+      ]
+    },
+    {
+      "id": "pesan_2",
+      "kapan": "HARI_RAWAN",
+      "judul": "Pengingat khusus hari ini",
+      "isi": "{nama}, sudah {dosis_tercatat} dosis tercatat. Berhenti sebelum waktunya bisa membuat penyakit kembali dan jadi lebih sulit diobati. Yuk, lanjutkan hari ini.",
+      "variabel_tersedia": [
+        "{nama}",
+        "{hari_ke}",
+        "{sisa_hari}",
+        "{total_hari}",
+        "{dosis_tercatat}"
+      ]
+    },
+    {
+      "id": "pesan_3",
+      "kapan": "HARI_RAWAN",
+      "judul": "Pengingat khusus hari ini",
+      "isi": "{nama}, kuman yang tersisa justru yang paling bandel. Pengobatan sampai tuntas, termasuk tahap lanjutan, yang membersihkannya agar penyakit tidak kambuh. Tinggal {sisa_hari} hari lagi.",
+      "variabel_tersedia": [
+        "{nama}",
+        "{hari_ke}",
+        "{sisa_hari}",
+        "{total_hari}",
+        "{dosis_tercatat}"
+      ]
     }
   ],
   "notifikasi": {
-    "pasien_jam_minum": "[Teks netral - DIISI ABYAN]",
-    "pasien_hari_rawan": "[Teks netral - DIISI ABYAN]",
-    "pmo_eskalasi": "[Teks netral - DIISI ABYAN]"
+    "pasien_jam_minum": "Sudah waktunya. Buka kotak, ya.",
+    "pasien_hari_rawan": "Ada pesan untukmu hari ini. Buka aplikasi untuk membacanya.",
+    "pmo_eskalasi": "Pasien yang kamu dampingi belum membuka kotak beberapa hari. Coba sapa dan tanyakan kabarnya."
   }
 }

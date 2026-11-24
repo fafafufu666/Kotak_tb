@@ -14,17 +14,14 @@ import kotlinx.coroutines.flow.map
 /** Which side of the product this phone is. */
 enum class AppMode { WEARER, CAREGIVER }
 
-/** Phone-side settings. The bracelet's own settings (name, countdown, check-in) live on the bracelet. */
+/** Phone-side settings: mode, the paired box, the relay and this phone's keys on it. */
 data class AppSettings(
     /** Null until the first-launch choice is made. */
     val mode: AppMode? = null,
     val deviceAddress: String? = null,
     val deviceName: String? = null,
-    /** Cached so alerts can name the wearer while the bracelet is out of range. */
+    /** The patient's nickname, the name the PMO sees on the relay. */
     val wearerName: String = "",
-    /** Warn when the bracelet has been out of range this long; 0 = never. */
-    val offlineAlertMin: Int = 30,
-    val lastSeenAt: Long = 0,
     /** The Pi relay, e.g. http://192.168.0.104:8787; blank = no relay. */
     val relayUrl: String = "",
     /** The relay's own id, so a new address for the same Pi keeps this phone's links. */
@@ -34,8 +31,6 @@ data class AppSettings(
     /** This phone's key as a caregiver on the relay, once linked. */
     val caregiverToken: String? = null,
     val caregiverName: String = "",
-    /** Newest acknowledgement the wearer phone has seen, so heartbeats only fetch newer ones. */
-    val acksSince: Long = 0,
     /** Last caregiver stream event id, so a reconnect replays what was missed. */
     val lastStreamEventId: Long = 0,
 )
@@ -51,17 +46,17 @@ class SettingsRepository(private val context: Context) {
         val address = stringPreferencesKey("device_address")
         val name = stringPreferencesKey("device_name")
         val wearer = stringPreferencesKey("wearer_name")
-        val offline = intPreferencesKey("offline_alert_min")
-        val lastSeen = longPreferencesKey("last_seen_at")
         val relayUrl = stringPreferencesKey("relay_url")
         val relayId = stringPreferencesKey("relay_id")
         val wearerToken = stringPreferencesKey("wearer_token")
         val caregiverToken = stringPreferencesKey("caregiver_token")
         val caregiverName = stringPreferencesKey("caregiver_name")
-        val acksSince = longPreferencesKey("acks_since")
         val lastStreamEventId = longPreferencesKey("last_stream_event_id")
 
-        // Left behind by the SMS build; removed on the next write.
+        // Left behind by the bracelet app's SMS build and its offline warning; removed on the next write.
+        val oldOffline = intPreferencesKey("offline_alert_min")
+        val oldLastSeen = longPreferencesKey("last_seen_at")
+        val oldAcksSince = longPreferencesKey("acks_since")
         val oldCaregivers = stringPreferencesKey("caregivers")
         val oldSms = booleanPreferencesKey("sms_enabled")
         val oldSmsCheckins = booleanPreferencesKey("sms_checkins")
@@ -76,14 +71,11 @@ class SettingsRepository(private val context: Context) {
             deviceAddress = address,
             deviceName = p[Keys.name],
             wearerName = p[Keys.wearer] ?: "",
-            offlineAlertMin = p[Keys.offline] ?: 30,
-            lastSeenAt = p[Keys.lastSeen] ?: 0,
             relayUrl = p[Keys.relayUrl] ?: defaultRelayUrl,
             relayId = p[Keys.relayId],
             wearerToken = p[Keys.wearerToken],
             caregiverToken = p[Keys.caregiverToken],
             caregiverName = p[Keys.caregiverName] ?: "",
-            acksSince = p[Keys.acksSince] ?: 0,
             lastStreamEventId = p[Keys.lastStreamEventId] ?: 0,
         )
     }
@@ -99,8 +91,6 @@ class SettingsRepository(private val context: Context) {
     }
 
     suspend fun setWearerName(name: String) = edit { it[Keys.wearer] = name }
-    suspend fun setOfflineAlertMin(min: Int) = edit { it[Keys.offline] = min }
-    suspend fun setLastSeen(at: Long) = edit { it[Keys.lastSeen] = at }
 
     /**
      * Points the app at a relay. The same relay at a new address (a different WiFi) keeps this
@@ -111,7 +101,7 @@ class SettingsRepository(private val context: Context) {
         val known = it[Keys.relayId]
         val sameRelay = relayId == null || known == null || known == relayId
         if (!sameRelay) {
-            it.remove(Keys.wearerToken); it.remove(Keys.caregiverToken); it.remove(Keys.acksSince); it.remove(Keys.lastStreamEventId)
+            it.remove(Keys.wearerToken); it.remove(Keys.caregiverToken); it.remove(Keys.lastStreamEventId)
         }
         it[Keys.relayUrl] = url.trim()
         if (relayId != null) it[Keys.relayId] = relayId
@@ -125,7 +115,6 @@ class SettingsRepository(private val context: Context) {
         it.remove(Keys.caregiverToken)
         it.remove(Keys.lastStreamEventId)
     }
-    suspend fun setAcksSince(at: Long) = edit { it[Keys.acksSince] = at }
     suspend fun setLastStreamEventId(id: Long) = edit { it[Keys.lastStreamEventId] = id }
 
     private suspend fun edit(block: (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {
@@ -133,6 +122,9 @@ class SettingsRepository(private val context: Context) {
             it.remove(Keys.oldCaregivers)
             it.remove(Keys.oldSms)
             it.remove(Keys.oldSmsCheckins)
+            it.remove(Keys.oldOffline)
+            it.remove(Keys.oldLastSeen)
+            it.remove(Keys.oldAcksSince)
             block(it)
         }
     }

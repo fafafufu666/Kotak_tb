@@ -40,7 +40,6 @@ import androidx.compose.runtime.getValue
 fun BerandaScreen(vm: PasienViewModel, app: AppViewModel) {
     val k by vm.keadaan.collectAsState()
     val settings by app.settings.collectAsState()
-    val link by app.link.collectAsState()
     val keadaan = k ?: return
     val zona = ZoneId.systemDefault()
 
@@ -94,7 +93,8 @@ fun BerandaScreen(vm: PasienViewModel, app: AppViewModel) {
                 val adaKotak = settings.deviceAddress != null
                 val linkSim by vm.linkKotak.collectAsState()
                 val status by vm.statusKotak.collectAsState()
-                val l = if (adaKotak) link else linkSim
+                // The real box over BLE (TautanKotak) is not built yet, so a paired box shows as not connected.
+                val l = if (adaKotak) LinkState.DISCONNECTED else linkSim
                 val (teksLink, warna) = when (l) {
                     LinkState.CONNECTED -> stringResource(R.string.kotak_terhubung) to WarnaPasien.Baik
                     LinkState.CONNECTING -> stringResource(R.string.kotak_menghubungkan) to WarnaPasien.Waspada

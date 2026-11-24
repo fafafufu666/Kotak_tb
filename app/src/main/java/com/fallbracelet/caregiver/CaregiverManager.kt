@@ -2,17 +2,16 @@ package com.fallbracelet.caregiver
 
 import android.content.Context
 import android.util.Log
-import com.fallbracelet.alert.AlertDispatcher
-import com.fallbracelet.alert.AlertRules
-import com.fallbracelet.alert.CaregiverAlert
-import com.fallbracelet.ble.EventType
+import com.fallbracelet.R
 import com.fallbracelet.data.AppMode
 import com.fallbracelet.data.AppSettings
 import com.fallbracelet.data.SettingsRepository
+import com.fallbracelet.relay.GalatRelay
 import com.fallbracelet.relay.RelayClient
 import com.fallbracelet.relay.RelayDiscovery
-import com.fallbracelet.relay.RelayFinder
 import com.fallbracelet.relay.RelayException
+import com.fallbracelet.relay.RelayFinder
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -27,106 +26,63 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
-/** One event as the relay tells caregivers about it. */
-data class RemoteEvent(
-    val id: Long,
-    val wearerId: Long,
-    val type: EventType,
-    val batteryPct: Int,
-    val occurredAt: Long,
-    val impactG: Float,
-    val message: String,
-    val ackedBy: String?,
-    val ackedAt: Long?,
-) {
-    companion object {
-        fun from(o: JSONObject) = RemoteEvent(
-            id = o.getLong("id"),
-            wearerId = o.getLong("wearerId"),
-            type = runCatching { EventType.valueOf(o.getString("type")) }.getOrDefault(EventType.UNKNOWN),
-            batteryPct = o.optInt("batteryPct"),
-            occurredAt = o.getLong("occurredAt"),
-            impactG = o.optDouble("impactG", 0.0).toFloat(),
-            message = o.optString("message"),
-            ackedBy = o.optString("ackedBy").takeIf { it.isNotEmpty() && it != "null" },
-            ackedAt = o.optLong("ackedAt").takeIf { it > 0 },
-        )
-    }
-}
-
-/** A wearer this caregiver follows, as last heard from the relay. */
-data class WatchedWearer(
-    val id: Long,
-    val name: String,
-    val offline: Boolean,
-    val lastHeartbeat: Long?,
-    val braceletConnected: Boolean?,
-    val state: String?,
-    val batteryPct: Int?,
-    val events: List<RemoteEvent>,
-) {
-    val lastCheckin get() = events.firstOrNull { it.type == EventType.CHECKIN }
-    val lastEvent get() = events.firstOrNull()
-
-    companion object {
-        fun from(o: JSONObject): WatchedWearer {
-            val st = o.optJSONObject("status")
-            val ev = o.optJSONArray("events")
-            return WatchedWearer(
-                id = o.getLong("id"),
-                name = o.getString("name"),
-                offline = o.optBoolean("offline"),
-                lastHeartbeat = o.optLong("lastHeartbeat").takeIf { it > 0 },
-                braceletConnected = st?.takeIf { it.has("braceletConnected") }?.optBoolean("braceletConnected"),
-                state = st?.optString("state")?.takeIf { it.isNotEmpty() },
-                batteryPct = st?.takeIf { it.has("batteryPct") }?.optInt("batteryPct"),
-                events = if (ev == null) emptyList() else List(ev.length()) { RemoteEvent.from(ev.getJSONObject(it)) },
-            )
-        }
-    }
-}
-
-/** PUSH: no live connection because the dashboard is closed; alarms arrive by FCM. */
+/** PUSH: no live connection because the screen is closed; ESKALASI arrive by FCM. */
 enum class StreamState { OFF, CONNECTING, LIVE, PUSH }
 
+/** An unseen ESKALASI that rang on this phone, with the patient's name. */
+data class Berdering(val kabar: KabarPmo, val nama: String)
+
 /**
- * Caregiver mode: keeps a live stream open to the relay and rings for FALL and SOS (APP-15, 16, 17).
- * Lives as long as the process; [CaregiverService] keeps the process alive while linked.
+ * PMO mode (PRD 6.2 M1–M3), doing what relay/web/index.html does: link with the patient's invite
+ * code, keep the live stream open, follow each patient's daily summary and 7-day row, and ring
+ * for each new or re-sent ESKALASI until it is marked seen ("Tandai dilihat"). Lives as long as
+ * the process; [CaregiverService] keeps the process alive while linked and push is not set up.
  */
 class CaregiverManager(
     private val context: Context,
     private val settings: SettingsRepository,
-    private val alerts: AlertDispatcher,
+    private val notif: NotifikasiPmo,
     private val scope: CoroutineScope,
     private val finder: RelayFinder,
     private val current: () -> AppSettings,
 ) {
-    private val _wearers = MutableStateFlow<List<WatchedWearer>>(emptyList())
-    val wearers: StateFlow<List<WatchedWearer>> = _wearers.asStateFlow()
+    private val _pasien = MutableStateFlow<List<PasienPmo>>(emptyList())
+    val pasien: StateFlow<List<PasienPmo>> = _pasien.asStateFlow()
     private val _stream = MutableStateFlow(StreamState.OFF)
     val stream: StateFlow<StreamState> = _stream.asStateFlow()
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    private val _berdering = MutableStateFlow<List<Berdering>>(emptyList())
+    /** Unseen ESKALASI that rang, oldest first: the in-app alert shows the first one not put aside. */
+    val berdering: StateFlow<List<Berdering>> = _berdering.asStateFlow()
+    private val _nanti = MutableStateFlow<Set<Long>>(emptySet())
+    /** Put aside with "Nanti" until the relay sends them again. */
+    val nanti: StateFlow<Set<Long>> = _nanti.asStateFlow()
+
     private var streamJob: Job? = null
 
-    /** The caregiver screen is on screen. */
+    /** The PMO screen is on screen. */
     private val visible = MutableStateFlow(false)
-    /** The relay has this phone's FCM token, so alarms can wake it without a live connection. */
+    /** The relay has this phone's FCM token, so ESKALASI can wake it without a live connection. */
     private val _pushReady = MutableStateFlow(false)
-    val pushReady: StateFlow<Boolean> = _pushReady.asStateFlow()
 
-    /** Called by the activity on start and stop. */
-    fun setVisible(on: Boolean) { visible.value = on }
+    /** Whether the background service should run (linked, no push). */
+    @Volatile private var layananDiminta = false
+
+    fun setVisible(on: Boolean) {
+        visible.value = on
+        // Android refuses to start the service from the background (e.g. right after an app update
+        // or a reboot); opening the app is always allowed, so try again then.
+        if (on && layananDiminta) CaregiverService.start(context)
+    }
 
     /**
-     * Push (FCM) wakes the phone for alarms, so the live stream only runs while the dashboard is
-     * open. If push isn't set up (no Google Play services, no internet when linking), the stream
-     * and its foreground service stay on in the background as before: the local-network fallback.
+     * With push (FCM) the live stream only runs while the screen is open. Without it (no Firebase
+     * project yet, the current plan) the stream and its foreground service stay on in the background.
      */
     fun start() {
         val link = settings.settings.map { s -> (s.caregiverToken.takeIf { s.mode == AppMode.CAREGIVER }) to s.relayUrl }
@@ -137,9 +93,10 @@ class CaregiverManager(
         scope.launch {
             combine(link, visible, _pushReady) { (token, url), shown, push ->
                 val linked = token != null && url.isNotBlank()
-                Triple(if (linked && (shown || !push)) url to token!! else null, linked && !push, linked)
-            }.distinctUntilChanged().collect { (wantStream, wantService, _) ->
+                (if (linked && (shown || !push)) url to token!! else null) to (linked && !push)
+            }.distinctUntilChanged().collect { (wantStream, wantService) ->
                 streamJob?.cancel()
+                layananDiminta = wantService
                 if (wantService) CaregiverService.start(context) else CaregiverService.stop(context)
                 if (wantStream == null) {
                     _stream.value = if (_pushReady.value) StreamState.PUSH else StreamState.OFF
@@ -152,7 +109,6 @@ class CaregiverManager(
 
     // --- Push (FCM) ----------------------------------------------------------------------
 
-    /** Gets this phone's FCM token and gives it to the relay. Retries until it sticks. */
     private suspend fun registerPush() {
         val token = runCatching { FirebaseMessaging.getInstance().token.await() }
             .onFailure { Log.w(TAG, "no FCM token, staying on the live stream", it) }
@@ -178,33 +134,33 @@ class CaregiverManager(
 
     /** A data message from FcmService. Same handling as the stream, so nothing rings twice. */
     fun handlePush(data: Map<String, String>) {
-        // The relay keeps the FCM token after a sign-out or a switch to wearer mode.
         if (current().caregiverToken == null || current().mode != AppMode.CAREGIVER) return
         when (data["kind"]) {
-            "event" -> {
-                val e = RemoteEvent(
+            "event" -> if (data["type"] == KabarPmo.ESKALASI) {
+                val e = KabarPmo(
                     id = data["id"]?.toLongOrNull() ?: return,
                     wearerId = data["wearerId"]?.toLongOrNull() ?: 0,
-                    type = runCatching { EventType.valueOf(data["type"].orEmpty()) }.getOrDefault(EventType.UNKNOWN),
-                    batteryPct = data["batteryPct"]?.toIntOrNull() ?: 0,
-                    occurredAt = data["occurredAt"]?.toLongOrNull() ?: System.currentTimeMillis(),
-                    impactG = data["impactG"]?.toFloatOrNull() ?: 0f,
+                    type = KabarPmo.ESKALASI,
                     message = data["message"].orEmpty(),
+                    receivedAt = data["receivedAt"]?.toLongOrNull() ?: System.currentTimeMillis(),
                     ackedBy = null,
                     ackedAt = null,
+                    escalations = data["escalations"]?.toIntOrNull() ?: 0,
+                    demo = data["demo"] == "1",
+                    detail = data["detail"]?.let { runCatching { DetailEskalasi.dari(JSONObject(it)) }.getOrNull() },
                 )
-                onEvent(e, data["wearerName"].orEmpty(), data["escalated"] == "1", data["escalations"]?.toIntOrNull() ?: 0)
+                onEvent(e, data["wearerName"].orEmpty(), data["escalated"] == "1")
             }
-            "ack" -> data["eventId"]?.toLongOrNull()?.let { alerts.cancelCaregiverAlarm(it) }
-            "offline" -> data["wearerId"]?.toLongOrNull()?.let { alerts.notifyWearerOffline(it, data["name"].orEmpty()) }
-            "online" -> data["wearerId"]?.toLongOrNull()?.let { alerts.clearWearerOffline(it) }
+            "ack" -> data["eventId"]?.toLongOrNull()?.let { berhentiBerdering(it) }
+            "offline" -> data["wearerId"]?.toLongOrNull()?.let { notif.pasienTerputus(it, data["name"].orEmpty()) }
+            "online" -> data["wearerId"]?.toLongOrNull()?.let { notif.pasienTersambung(it) }
         }
         if (visible.value) scope.launch { runCatching { refresh() } }
     }
 
     private fun client() = current().let { RelayClient(it.relayUrl, it.caregiverToken) }
 
-    /** Links to a wearer with their invite code. A phone already linked keeps its key and follows one more. */
+    /** Links to a patient with their invite code. A phone already linked keeps its key and follows one more. */
     suspend fun link(relayUrl: String, code: String, name: String): Result<String> = runCatching {
         if (relayUrl.trim() != current().relayUrl) settings.setRelay(relayUrl, RelayDiscovery.check(relayUrl.trim())?.relayId)
         val token = current().caregiverToken
@@ -214,29 +170,46 @@ class CaregiverManager(
         r.getJSONObject("wearer").getString("name")
     }.onFailure { Log.w(TAG, "link failed", it) }
 
-    /** "Find relay" on the link screen: scans the WiFi and returns the address it found. */
+    /** "Cari relay": scans the WiFi and returns the address it found. */
     suspend fun findRelay(): String? = finder.findNow()?.url
 
     suspend fun refresh() {
-        val a = client().get("/v1/dashboard?limit=1000").getJSONArray("wearers")
-        _wearers.value = List(a.length()) { WatchedWearer.from(a.getJSONObject(it)) }
+        val a = client().get("/v1/dashboard?limit=200").getJSONArray("wearers")
+        val daftar = List(a.length()) { PasienPmo.dari(a.getJSONObject(it)) }
+        _pasien.value = daftar
+        // Keep only what the relay still has unseen (a demo that ended, or seen on another device, is gone).
+        val terbuka = daftar.flatMap { p -> p.belumDilihat.map { it.id } }.toSet()
+        _berdering.value.filter { it.kabar.id !in terbuka }.forEach { berhentiBerdering(it.kabar.id) }
+        for (p in daftar) for (e in p.belumDilihat.reversed()) bunyikan(e, p.nama, diulang = false)
     }
 
-    /** Stops alarms on this phone, like the web page's sign-out. The name is kept for the next link. */
+    /** Stops the PMO side on this phone, like the web page's "Keluar". The name is kept for the next link. */
     suspend fun signOut() {
-        _wearers.value.flatMap { it.events }.filter { it.type.isAlarm && it.ackedAt == null }
-            .forEach { alerts.cancelCaregiverAlarm(it.id) }
+        _berdering.value.forEach { notif.batalkan(it.kabar.id) }
+        _berdering.value = emptyList()
+        _nanti.value = emptySet()
         settings.clearCaregiverLink()
-        _wearers.value = emptyList()
+        _pasien.value = emptyList()
         _error.value = null
     }
 
-    fun acknowledge(eventId: Long) = scope.launch {
-        alerts.cancelCaregiverAlarm(eventId)
-        runCatching { client().post("/v1/events/$eventId/ack") }
-            .onFailure { _error.value = "Couldn't send the acknowledgement: ${it.message}" }
-        runCatching { refresh() }
+    /** "Tandai dilihat": the patient then sees "Dilihat oleh …". Returns whether the relay took it. */
+    suspend fun acknowledge(eventId: Long): Boolean {
+        val ok = runCatching { client().post("/v1/events/$eventId/ack") }
+            .onFailure { _error.value = teks(R.string.pd_galat_tandai) + " " + sebab(it) }
+            .isSuccess
+        if (ok) {
+            val oleh = current().caregiverName.ifBlank { teks(R.string.pd_kamu) }
+            _pasien.update { l -> l.map { TampilanPmo.denganDilihat(it, eventId, oleh, System.currentTimeMillis()) } }
+            berhentiBerdering(eventId)
+        }
+        return ok
     }
+
+    fun acknowledgeLater(eventId: Long) = scope.launch { acknowledge(eventId) }
+
+    /** "Nanti": put the alert aside until the relay sends it again. The notification stays. */
+    fun nanti(eventId: Long) = _nanti.update { it + eventId }
 
     // --- Live stream ---------------------------------------------------------------------
 
@@ -249,11 +222,16 @@ class CaregiverManager(
                 readStream(url, token)
                 backoff = 2_000L
             } catch (e: RelayException) {
-                _error.value = if (e.status == 401) "This phone's link was removed. Link again." else "Relay unreachable: ${e.message}"
+                if (e.status == 401) {
+                    _error.value = teks(R.string.pd_galat_dilepas)
+                    signOut()
+                    return
+                }
+                _error.value = teks(R.string.pd_galat_relay) + " " + sebab(e)
                 // Found at a new address: the settings change restarts the stream from start().
                 if (e.status == 0 && finder.afterFailure()?.url.let { it != null && it != url }) return
             } catch (e: Exception) {
-                _error.value = "Relay unreachable: ${e.message}"
+                _error.value = teks(R.string.pd_galat_relay) + " " + sebab(e)
                 if (finder.afterFailure()?.url.let { it != null && it != url }) return
             }
             _stream.value = StreamState.CONNECTING
@@ -295,67 +273,81 @@ class CaregiverManager(
     }
 
     private suspend fun dispatch(type: String, d: JSONObject, id: Long?) {
+        val wearerId = d.optLong("wearerId")
         when (type) {
-            "event" -> onEvent(RemoteEvent.from(d), d.optString("wearerName"), d.optBoolean("escalated"), d.optInt("escalations"))
-            "status" -> _wearers.update { list ->
-                list.map {
-                    if (it.id != d.getLong("wearerId")) it else {
-                        val st = d.getJSONObject("status")
-                        // Replaces the old status: with no bracelet connected, state and battery aren't known.
-                        it.copy(
-                            offline = false, lastHeartbeat = d.getLong("at"),
-                            braceletConnected = st.optBoolean("braceletConnected"),
-                            state = st.optString("state").takeIf { s -> s.isNotEmpty() },
-                            batteryPct = if (st.has("batteryPct")) st.getInt("batteryPct") else null,
-                        )
-                    }
+            "event" -> {
+                val e = KabarPmo.dari(d)
+                if (_pasien.value.none { it.id == e.wearerId }) runCatching { refresh() }
+                else onEvent(e, d.optString("wearerName"), d.optBoolean("escalated"))
+            }
+            "days" -> {
+                val r = RingkasanPmo.dari(d.optJSONObject("ringkasan"))
+                val lama = _pasien.value.firstOrNull { it.id == wearerId }
+                if (lama != null && r?.bepergianSampai != null && r.bepergianSampai != lama.ringkasan?.bepergianSampai) {
+                    notif.bepergian(wearerId, lama.nama, r.bepergianSampai)
                 }
+                _pasien.update { l -> l.map { if (it.id == wearerId) TampilanPmo.denganRingkasan(it, r, PasienPmo.hariDari(d)) else it } }
+                // Demo started or ended: the other mode's ESKALASI no longer ring.
+                val p = _pasien.value.firstOrNull { it.id == wearerId }
+                if (p != null) _berdering.value.filter { it.kabar.wearerId == wearerId && !p.sesuaiMode(it.kabar) }
+                    .forEach { berhentiBerdering(it.kabar.id) }
+            }
+            "status" -> _pasien.update { l -> l.map { if (it.id == wearerId) it.copy(offline = false, lastHeartbeat = d.optLong("at")) else it } }
+            "online" -> {
+                _pasien.update { l -> l.map { if (it.id == wearerId) it.copy(offline = false) else it } }
+                notif.pasienTersambung(wearerId)
             }
             "offline" -> {
-                _wearers.update { l -> l.map { if (it.id == d.getLong("wearerId")) it.copy(offline = true) else it } }
-                alerts.notifyWearerOffline(d.getLong("wearerId"), d.optString("name"))
-            }
-            "online" -> {
-                _wearers.update { l -> l.map { if (it.id == d.getLong("wearerId")) it.copy(offline = false) else it } }
-                alerts.clearWearerOffline(d.getLong("wearerId"))
+                _pasien.update { l -> l.map { if (it.id == wearerId) it.copy(offline = true) else it } }
+                notif.pasienTerputus(wearerId, d.optString("name"))
             }
             "ack" -> {
-                alerts.cancelCaregiverAlarm(d.getLong("eventId"))
-                _wearers.update { l ->
-                    l.map { w ->
-                        w.copy(events = w.events.map { e ->
-                            if (e.id == d.getLong("eventId")) e.copy(ackedBy = d.getString("by"), ackedAt = d.getLong("at")) else e
-                        })
-                    }
-                }
+                val eventId = d.getLong("eventId")
+                _pasien.update { l -> l.map { TampilanPmo.denganDilihat(it, eventId, d.optString("by"), d.optLong("at")) } }
+                berhentiBerdering(eventId)
             }
             "unlinked", "hello" -> runCatching { refresh() }
         }
         if (id != null && id > current().lastStreamEventId) settings.setLastStreamEventId(id)
     }
 
+    private fun onEvent(e: KabarPmo, nama: String, diulang: Boolean) {
+        _pasien.update { l -> l.map { if (it.id == e.wearerId) TampilanPmo.denganKabar(it, e) else it } }
+        val namaPasien = nama.ifBlank { _pasien.value.firstOrNull { it.id == e.wearerId }?.nama.orEmpty() }
+        bunyikan(e, namaPasien, diulang)
+    }
+
     /** Alerts already raised, as "eventId:escalations": push and stream can both deliver one. */
-    private val alerted = object : LinkedHashMap<String, Unit>() {
+    private val sudahBerbunyi = object : LinkedHashMap<String, Unit>() {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Unit>) = size > 200
     }
 
-    private fun onEvent(e: RemoteEvent, wearerName: String, escalated: Boolean, escalations: Int) {
-        _wearers.update { l ->
-            l.map { w ->
-                if (w.id != e.wearerId) w else w.copy(
-                    events = (listOf(e) + w.events.filter { it.id != e.id })
-                        .sortedWith(compareByDescending<RemoteEvent> { it.occurredAt }.thenByDescending { it.id }),
-                    batteryPct = if (e.batteryPct > 0) e.batteryPct else w.batteryPct,
-                )
-            }
-        }
-        if (e.ackedAt != null) return
-        synchronized(alerted) { if (alerted.put("${e.id}:$escalations", Unit) != null) return }
-        when (AlertRules.caregiverAlert(e.type)) {
-            CaregiverAlert.ALARM -> alerts.caregiverAlarm(e, wearerName, escalated)
-            CaregiverAlert.RING_ONCE -> alerts.caregiverTest(e, wearerName)
-            CaregiverAlert.NOTIFY -> alerts.caregiverInfo(e, wearerName)
-            CaregiverAlert.HISTORY -> Unit
+    private fun bunyikan(e: KabarPmo, nama: String, diulang: Boolean) {
+        val p = _pasien.value.firstOrNull { it.id == e.wearerId }
+        if (!TampilanPmo.perluBerdering(e, p, System.currentTimeMillis())) return
+        if (diulang) _nanti.update { it - e.id }
+        _berdering.update { l -> if (l.any { it.kabar.id == e.id }) l.map { if (it.kabar.id == e.id) Berdering(e, nama) else it } else l + Berdering(e, nama) }
+        synchronized(sudahBerbunyi) { if (sudahBerbunyi.put("${e.id}:${e.escalations}", Unit) != null) return }
+        notif.eskalasi(e, nama)
+    }
+
+    private fun berhentiBerdering(eventId: Long) {
+        notif.batalkan(eventId)
+        _berdering.update { l -> l.filter { it.kabar.id != eventId } }
+        _nanti.update { it - eventId }
+    }
+
+    private fun teks(id: Int, vararg isi: Any): String = context.getString(id, *isi)
+
+    /** Why a relay call failed, in plain words (no exception text). */
+    private fun sebab(e: Throwable): String {
+        val status = (e as? RelayException)?.status ?: 0
+        return when (GalatRelay.dari(e)) {
+            GalatRelay.TIDAK_TERHUBUNG -> teks(R.string.relay_galat_tidak_terhubung, current().relayUrl)
+            GalatRelay.BEDA_JARINGAN -> teks(R.string.relay_galat_beda_jaringan)
+            GalatRelay.RELAY_BERMASALAH -> teks(R.string.relay_galat_bermasalah, status)
+            GalatRelay.DITOLAK -> teks(R.string.relay_galat_ditolak, status)
+            GalatRelay.LAIN -> teks(R.string.relay_galat_lain)
         }
     }
 
