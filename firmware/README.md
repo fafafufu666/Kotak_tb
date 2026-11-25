@@ -2,8 +2,8 @@
 
 ## Purpose
 
-The medicine box firmware is [`kotak_obat/`](kotak_obat/README.md) (ESP32-C3, BLE protocol v2);
-build steps, wiring and status are in its own README.
+The medicine box firmware is [`kotak_obat/`](kotak_obat/README.md) (ESP32 DevKit, BLE protocol v2);
+build steps, wiring, bench commands and status are in its own README.
 
 Everything else in this folder is the **legacy bracelet firmware** from the fork, not used by the
 app any more and kept for reference. The rest of this file describes that bracelet code:
@@ -22,7 +22,8 @@ The wire format is in [`../PROTOCOL.md`](../PROTOCOL.md).
 | [`ble_msg_test/`](ble_msg_test/README.md) | Sensorless stand-in bracelet: type commands to send events to the app |
 
 **The bracelet's `ble_protocol.h` exists in all three bracelet folders** (Arduino sketches can't include files outside
-their own folder). Change them together with `app/.../ble/BleProtocol.kt` and `PROTOCOL.md`.
+their own folder). The app's side of this protocol has been removed, so these sketches no longer
+work with this app.
 `fall_bracelet_oled/` also copies every other shared file.
 
 ## Build

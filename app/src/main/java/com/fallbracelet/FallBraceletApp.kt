@@ -7,6 +7,7 @@ import com.fallbracelet.data.PasienDatabase
 import com.fallbracelet.data.PasienRepository
 import com.fallbracelet.data.SettingsRepository
 import com.fallbracelet.kotak.KotakManager
+import com.fallbracelet.kotak.KotakService
 import com.fallbracelet.pengingat.PengingatPasien
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +33,7 @@ class FallBraceletApp : Application() {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         manager = HpManager(this, settings, scope)
         val pengingat = PengingatPasien(this).apply { buatSaluran() }
+        KotakService.buatSaluran(this)
         pasien = PasienManager(
             this, PasienDatabase.create(this), PasienRepository(this), scope, pengingat,
             relay = manager.relay, pengaturanHp = settings, hpFlow = manager.appSettings,

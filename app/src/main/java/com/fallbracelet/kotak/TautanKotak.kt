@@ -9,14 +9,17 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * The phone's side of the link to one medicine box, in protocol v2 terms. [TautanSimulasi] talks
- * to [KotakSimulasi]; a BLE implementation for the real box comes with the hardware (stage 4 on a
- * real ESP32) and goes through the same steps.
+ * The phone's side of the link to one medicine box, in protocol v2 terms. [TautanBle] talks to the
+ * real box over Bluetooth LE, [TautanSimulasi] to [KotakSimulasi]; both go through the same steps.
  */
 interface TautanKotak {
     val link: StateFlow<LinkState>
@@ -25,7 +28,7 @@ interface TautanKotak {
     /** EVENT indications, parsed. Each must be answered with [ack]. */
     val kejadian: SharedFlow<KejadianKotak>
 
-    /** Connects and sets up like `BraceletConnection.setUp`: TIME, read CONFIG and STATUS, then subscribe. */
+    /** Connects and sets up: TIME, read CONFIG and STATUS, subscribe to STATUS, then to EVENT last. */
     fun sambung(waktu: suspend () -> Pair<Long, Int>)
     fun putus()
 
@@ -112,4 +115,27 @@ class TautanSimulasi(
     private companion object {
         const val SAMBUNG_MS = 600L
     }
+}
+
+/**
+ * Whichever box is in use now (the real one or the simulated one), as one [TautanKotak] for the
+ * screens. Changing [pilihan] switches every flow over; connecting is left to [KotakManager].
+ */
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+class TautanAktif(val pilihan: StateFlow<TautanKotak>, scope: CoroutineScope) : TautanKotak {
+    override val link: StateFlow<LinkState> =
+        pilihan.flatMapLatest { it.link }.stateIn(scope, SharingStarted.Eagerly, LinkState.DISCONNECTED)
+    override val status: StateFlow<StatusKotak?> =
+        pilihan.flatMapLatest { it.status }.stateIn(scope, SharingStarted.Eagerly, null)
+    override val config: StateFlow<ConfigKotak?> =
+        pilihan.flatMapLatest { it.config }.stateIn(scope, SharingStarted.Eagerly, null)
+    override val kejadian: SharedFlow<KejadianKotak> =
+        pilihan.flatMapLatest { it.kejadian }.shareIn(scope, SharingStarted.Eagerly)
+
+    override fun sambung(waktu: suspend () -> Pair<Long, Int>) = pilihan.value.sambung(waktu)
+    override fun putus() = pilihan.value.putus()
+    override suspend fun setelWaktu(epochDetik: Long, selisihUtcMenit: Int) = pilihan.value.setelWaktu(epochDetik, selisihUtcMenit)
+    override suspend fun ack(seq: Long) = pilihan.value.ack(seq)
+    override suspend fun perintah(p: Byte) = pilihan.value.perintah(p)
+    override suspend fun tulisConfig(c: ConfigKotak) = pilihan.value.tulisConfig(c)
 }

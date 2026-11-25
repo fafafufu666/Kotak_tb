@@ -94,34 +94,38 @@ fun PengaturanScreen(vm: PasienViewModel, app: AppViewModel) {
             // Box
             KartuPasien {
                 LabelBagian(stringResource(R.string.atur_kotak))
-                if (settings.deviceAddress != null) {
-                    Text(stringResource(R.string.atur_kotak_dipasangkan, settings.deviceName ?: settings.deviceAddress!!))
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedButton(onClick = vm::pasangkanUlang) { Text(stringResource(R.string.atur_lupakan)) }
+                // The real box over BLE, or the simulated ESP32: both speak protocol v2
+                val asli = settings.deviceAddress != null
+                val cfg by vm.configKotak.collectAsState()
+                val uji by vm.ujiKotakDiterima.collectAsState()
+                val versi = cfg?.versi ?: com.fallbracelet.kotak.KotakProtokol.VERSI
+                if (asli) {
+                    Text(stringResource(R.string.atur_kotak_asli, cfg?.nama ?: settings.deviceName ?: settings.deviceAddress!!, versi))
                 } else {
-                    // The simulated ESP32: same protocol v2 as the real box will use
-                    val cfg by vm.configKotak.collectAsState()
+                    Text(stringResource(R.string.atur_kotak_simulasi, cfg?.nama ?: "", versi))
+                }
+                Text(
+                    cfg?.jam?.let { j -> stringResource(R.string.atur_kotak_jam, "%02d.%02d".format(j, cfg!!.menit), cfg!!.durasiAlarmMenit) }
+                        ?: stringResource(R.string.atur_kotak_jam_belum),
+                    color = WarnaPasien.Redup,
+                )
+                if (!asli) {
                     val jangkau by vm.kotakDalamJangkauan.collectAsState()
-                    val uji by vm.ujiKotakDiterima.collectAsState()
-                    Text(stringResource(R.string.atur_kotak_simulasi, cfg?.nama ?: "", cfg?.versi ?: com.fallbracelet.kotak.KotakProtokol.VERSI))
-                    Text(
-                        cfg?.jam?.let { j -> stringResource(R.string.atur_kotak_jam, "%02d.%02d".format(j, cfg!!.menit), cfg!!.durasiAlarmMenit) }
-                            ?: stringResource(R.string.atur_kotak_jam_belum),
-                        color = WarnaPasien.Redup,
-                    )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.atur_kotak_jangkauan), Modifier.weight(1f))
                         Switch(checked = jangkau, onCheckedChange = vm::setKotakDalamJangkauan)
                     }
                     Text(stringResource(R.string.atur_kotak_jangkauan_isi), color = WarnaPasien.Redup, style = MaterialTheme.typography.bodySmall)
-                    Spacer(Modifier.height(8.dp))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = vm::cariKotak) { Text(stringResource(R.string.atur_kotak_cari)) }
-                        OutlinedButton(onClick = vm::ujiKotak) { Text(stringResource(R.string.atur_kotak_uji)) }
-                        OutlinedButton(onClick = vm::pasangkanUlang) { Text(stringResource(R.string.atur_pasangkan)) }
-                    }
-                    uji?.let { Text(stringResource(R.string.atur_kotak_uji_diterima, Format.waktu(it, java.time.ZoneId.systemDefault())), color = WarnaPasien.Baik) }
                 }
+                Spacer(Modifier.height(8.dp))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = vm::cariKotak) { Text(stringResource(R.string.atur_kotak_cari)) }
+                    OutlinedButton(onClick = vm::ujiKotak) { Text(stringResource(R.string.atur_kotak_uji)) }
+                    OutlinedButton(onClick = vm::pasangkanUlang) {
+                        Text(stringResource(if (asli) R.string.atur_lupakan else R.string.atur_pasangkan))
+                    }
+                }
+                uji?.let { Text(stringResource(R.string.atur_kotak_uji_diterima, Format.waktu(it, java.time.ZoneId.systemDefault())), color = WarnaPasien.Baik) }
             }
 
             // Relay (P8: address / find relay); PMOs are on the PMO tab

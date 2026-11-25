@@ -8,6 +8,9 @@ namespace hw {
 void begin();
 // Debounced lid state; true = open. Call every loop.
 bool lidOpen(uint32_t now);
+// Bench test without a sensor: -1 = read the sensor, 0 = lid closed, 1 = lid open.
+void setLidOverride(int8_t o);
+int8_t lidOverride();
 // Buzzer + LED pattern, non-blocking; update() drives it.
 void play(Pattern p);
 void update(uint32_t now);

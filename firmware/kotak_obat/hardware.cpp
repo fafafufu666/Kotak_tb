@@ -9,6 +9,7 @@ namespace {
 bool stable = false;     // debounced: lid open
 bool lastRaw = false;
 uint32_t changedAt = 0;
+int8_t override_ = -1;
 
 Pattern pattern = Pattern::Off;
 uint32_t patternStart = 0;
@@ -19,7 +20,10 @@ void buzzer(bool on) {
 void led(bool on) {
   if (PIN_LED >= 0) digitalWrite(PIN_LED, on ? LED_ACTIVE_LEVEL : !LED_ACTIVE_LEVEL);
 }
-bool readLid() { return PIN_LID >= 0 && digitalRead(PIN_LID) == LID_OPEN_LEVEL; }
+bool readLid() {
+  if (override_ >= 0) return override_ == 1;
+  return PIN_LID >= 0 && digitalRead(PIN_LID) == LID_OPEN_LEVEL;
+}
 }  // namespace
 
 namespace hw {
@@ -43,6 +47,9 @@ bool lidOpen(uint32_t now) {
   }
   return stable;
 }
+
+void setLidOverride(int8_t o) { override_ = o; }
+int8_t lidOverride() { return override_; }
 
 void play(Pattern p) {
   pattern = p;
