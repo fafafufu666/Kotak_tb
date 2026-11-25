@@ -1,16 +1,17 @@
-# ble — Bluetooth LE link to the bracelet
+# ble — Bluetooth LE scanner and the old bracelet GATT client
 
 ## Purpose
 
-The phone side of the bracelet's GATT protocol: finding bracelets, keeping one connected, and
-turning its bytes into Kotlin types. Used only in wearer mode.
+`BleScanner` finds the medicine box for pairing (P3) and `LinkState` is the link state the box
+code uses. The rest is the phone side of the old bracelet's GATT protocol (v1), which nothing calls
+any more: it is kept as the starting point for the real box link (`kotak/TautanKotak`).
 
 ## Contents
 
 | File | What it does |
 |---|---|
 | `BleProtocol.kt` | `BleProtocol` object: service/characteristic UUIDs, packet sizes, parse/encode for STATUS, EVENT, ACK, TIME, CONFIG and STREAM. Also the shared types `BraceletState`, `EventType`, `Command`, `BraceletStatus`, `BraceletEvent`, `BraceletConfig`, `AccelSample` |
-| `BleScanner.kt` | `BleScanner.scan()`: a `Flow<FoundDevice>` of nearby bracelets, filtered by the service UUID in the advertisement |
+| `BleScanner.kt` | `BleScanner.scan()`: a `Flow<FoundDevice>` of nearby medicine boxes, filtered by the protocol v2 service UUID in the advertisement (`KotakProtokol.LAYANAN`) |
 | `BraceletConnection.kt` | `BraceletConnection`: GATT client for one bracelet, exposing `link`, `status`, `config`, `events` and `stream` flows, plus `sendCommand`, `ack` and `writeConfig` |
 
 ## How it works
@@ -31,8 +32,8 @@ turning its bytes into Kotlin types. Used only in wearer mode.
 
 - Mirrors `firmware/fall_bracelet/ble_protocol.h`; the contract is in
   [`PROTOCOL.md`](../../../../../../../PROTOCOL.md). Change all three together and bump `VERSION`.
-- `BleScanner` is used by `ui/AppViewModel` (P3 box pairing). `BraceletConnection` and the bracelet protocol are no longer connected to anything; they stay as the GATT starting point for the real box (`kotak/TautanKotak`)
-  (`AccelSample`). `EventType` is also used by `alert/` and `caregiver/`.
+- `BleScanner` is used by `ui/AppViewModel` (P3 box pairing); `LinkState` by `kotak/` and
+  `ui/pasien/BerandaScreen`. The rest of `BraceletConnection.kt` and all of `BleProtocol` are not used.
 - Android Bluetooth APIs and kotlinx-coroutines only.
 
 ## Usage notes

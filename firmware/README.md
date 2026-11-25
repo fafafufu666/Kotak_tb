@@ -1,21 +1,27 @@
-# firmware — bracelet firmware (template)
+# firmware — Arduino sketches
 
 ## Purpose
 
-Arduino sketches for the bracelet: Seeed XIAO ESP32-C3, MPU6050, vibration motor, SW2 button,
+The medicine box firmware is [`kotak_obat/`](kotak_obat/README.md) (ESP32-C3, BLE protocol v2);
+build steps, wiring and status are in its own README.
+
+Everything else in this folder is the **legacy bracelet firmware** from the fork, not used by the
+app any more and kept for reference. The rest of this file describes that bracelet code:
+Seeed XIAO ESP32-C3, MPU6050, vibration motor, SW2 button,
 400 mAh LiPo. They implement the spec's five states, the three-phase detector, the button and
-buzz patterns, the battery rules, and **alerts over BLE to the Android app** (spec option B).
+buzz patterns, the battery rules, and **alerts over BLE to the phone app** (spec option B, protocol v1).
 The wire format is in [`../PROTOCOL.md`](../PROTOCOL.md).
 
 ## Contents
 
 | Directory | What it is |
 |---|---|
+| [`kotak_obat/`](kotak_obat/README.md) | **The medicine box firmware** (protocol v2) |
 | [`fall_bracelet/`](fall_bracelet/README.md) | The bracelet firmware (XIAO ESP32-C3; also builds for an ESP32 DevKit) |
 | [`fall_bracelet_oled/`](fall_bracelet_oled/README.md) | Copy of `fall_bracelet/` with a 0.96" OLED status display, DevKit / breadboard only |
 | [`ble_msg_test/`](ble_msg_test/README.md) | Sensorless stand-in bracelet: type commands to send events to the app |
 
-**`ble_protocol.h` exists in all three folders** (Arduino sketches can't include files outside
+**The bracelet's `ble_protocol.h` exists in all three bracelet folders** (Arduino sketches can't include files outside
 their own folder). Change them together with `app/.../ble/BleProtocol.kt` and `PROTOCOL.md`.
 `fall_bracelet_oled/` also copies every other shared file.
 

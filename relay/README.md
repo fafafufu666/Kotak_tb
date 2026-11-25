@@ -6,10 +6,10 @@ summary (STATUS_HARIAN) and the PMO web page in Indonesian.
 
 ## Purpose
 
-The server between the wearer's phone and the caregivers. The wearer's phone uploads events and a
-heartbeat every 5 minutes, and as soon as the bracelet connects or drops. Caregiver phones get
-alarms by Firebase Cloud Messaging push (`push.mjs`), which wakes a locked phone, and over a live
-Server-Sent Events stream while the app or web page is open. Node 22 with its built-in SQLite; the
+The server between the patient's phone and the PMO. The patient's phone sends ESKALASI, the daily
+summary (STATUS_HARIAN) and a heartbeat every 5 minutes. PMO phones get each ESKALASI over a live
+Server-Sent Events stream while the app or web page is open, and by Firebase Cloud Messaging push
+(`push.mjs`), which wakes a locked phone, once a Firebase project is set up. Node 22 with its built-in SQLite; the
 one package is `firebase-admin`. Without it, or without the key, the relay runs stream-only.
 
 ## Contents
@@ -17,11 +17,11 @@ one package is `firebase-admin`. Without it, or without the key, the relay runs 
 | File | What it does |
 |---|---|
 | `server.mjs` | The relay: HTTP routes, SQLite schema (wearers, caregivers, links, invites, events, days, push tokens, meta), SSE fan-out, offline and re-send timers. `PORT` (default 8787), `DB_PATH`, `LAN_ONLY` (default on) and `TICK_MS` (timer period, default 30 000; the test uses 200) env vars |
-| `push.mjs` | FCM push: high-priority data messages for FALL/SOS and re-pushes, normal for TEST, LOW_BATTERY, OFF; drops tokens FCM rejects for good |
+| `push.mjs` | FCM push: high-priority data messages for ESKALASI and re-sends (and the legacy FALL/SOS), normal for the rest; drops tokens FCM rejects for good |
 | `web/index.html` | The PMO page in a browser (Indonesian), served at `/` and `/caregiver` (see below); a single self-contained page |
 | `test.mjs` | End-to-end test: starts `server.mjs` on port 18787 with a throwaway database and drives the API |
 | `package.json` / `package-lock.json` | Node ≥ 22, `npm start` / `npm test`, the `firebase-admin` dependency |
-| `fall-bracelet-relay.service` | systemd unit for the Pi (replace `YOUR_PI_USER`) |
+| `fall-bracelet-relay.service` | systemd unit for the Pi (replace `YOUR_PI_USER`); the name is left over from the fork |
 
 Not in git: `relay.db*` (the database) and `firebase-service-account.json` (the push key).
 
@@ -101,16 +101,17 @@ Put the Firebase service-account key on the Pi as `firebase-service-account.json
 out of git) to build.
 
 The caregiver app sends its FCM token to `PUT /v1/push-token` after linking and whenever Firebase
-rotates it. Every message the relay fans out also goes by push: FALL and SOS (and their re-pushes)
-as high-priority data messages, which open the full-screen alarm; TEST, LOW_BATTERY, OFF and
-offline/online as normal priority. Tokens FCM rejects for good are deleted. Once its token is
+rotates it. Every message the relay fans out also goes by push: ESKALASI (and its re-sends) as a
+high-priority data message, which opens the alert screen over the lock screen; offline/online as
+normal priority. Tokens FCM rejects for good are deleted. Once its token is
 registered the app drops the background live connection and its foreground service, and keeps the
 stream only while the dashboard is open. A phone without push keeps the stream running in the
 background as before.
 
 ## API
 
-Every phone gets a random bearer token; only its SHA-256 is stored.
+Every phone gets a random bearer token; only its SHA-256 is stored. The API and database still use
+the fork's names: "wearer" is the patient's phone, "caregiver" is the PMO.
 
 | Call | Who | What |
 |---|---|---|
@@ -133,4 +134,5 @@ nobody marked seen is sent again every `ulangKirimMenit`, up to `maksUlang` time
 apart, at most 20 times), as the app's rules file says. A FALL or SOS nobody acknowledged is
 pushed again every 2 min, up to 5 times. Older `relay.db` files get the new columns
 (`events.detail`, `demo`, `resend_every_ms`, `max_resends`, `wearers.ringkasan`) and the `days`
-table on start.
+table on start. The FALL / SOS / TEST / LOW_BATTERY / OFF event types and the FALL/SOS re-push
+timer are left over from the bracelet; the app no longer sends them.

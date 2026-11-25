@@ -102,9 +102,10 @@ The box requires an encrypted, bonded link for every characteristic, as the brac
 
 # Legacy: bracelet ↔ phone protocol (version 1)
 
-The rest of this file is the FallBracelet protocol the fork started from. It is still used by the
-old bracelet code (`ble/BleProtocol.kt`, `firmware/fall_bracelet*`, `firmware/ble_msg_test`) and
-goes when that code is removed (stage 5 replaces the firmware with `firmware/kotak_obat`).
+The rest of this file is the FallBracelet protocol the fork started from. The app no longer uses
+it: only the legacy code still follows it (`ble/BleProtocol.kt` and `ble/BraceletConnection.kt`,
+kept as the starting point for the real box link, plus `firmware/fall_bracelet*` and
+`firmware/ble_msg_test`). It goes when that code is removed; the box uses version 2 above.
 
 
 This is the contract between the ESP32-C3 firmware (`firmware/fall_bracelet/ble_protocol.h`)

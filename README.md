@@ -1,81 +1,87 @@
-# Fall-detection bracelet
+# Tuntas — connected TB medicine box
 
-Android app, ESP32-C3 firmware and a Raspberry Pi relay for a fall-detection bracelet.
-The bracelet detects a fall (or an SOS hold), buzzes a cancel window (20 s by default), then
-sends the event over Bluetooth LE to the wearer's phone. The phone stores it and passes it to
-the relay, which alarms the caregivers by push notification on their phones or in a web page.
+Android app, ESP32-C3 firmware and a Node relay for a TB medicine box prototype (see
+[`PRD.md`](PRD.md)). The box records every lid opening, even with no phone nearby, and rings at
+the dose time. The patient's phone stores each opening, works out each dose's status, the
+vulnerable days and missed doses from the rules file, and sends an ESKALASI (missed doses) and a
+daily summary to the relay. The relay alerts the patient's PMO in the app or in a web page.
 
 ```
-bracelet ──BLE──▶ wearer's phone ──HTTP──▶ relay (Pi) ──push / live stream──▶ caregivers
+medicine box ──BLE (protocol v2)──▶ patient's phone ──HTTP──▶ relay (laptop / Pi) ──live stream / push──▶ PMO
 ```
+
+The repo is a fork of a fall-detection bracelet project. The bracelet code has been removed from
+the app; the old bracelet firmware and the v1 protocol are still in the repo for reference (see
+[Legacy bracelet code](#legacy-bracelet-code)).
 
 ## Tech stack
 
 | Part | Stack |
 |---|---|
-| Bracelet | Seeed XIAO ESP32-C3, MPU6050, Arduino (esp32 core 3.x), NimBLE-Arduino 2.x |
-| Phone app | Kotlin, Jetpack Compose / Material 3, Room, DataStore, Firebase Cloud Messaging; Gradle 9 wrapper, AGP 9.1, min SDK 26, target 36 |
-| Relay | Node 22 (built-in SQLite, HTTP, Server-Sent Events), `firebase-admin`, systemd on a Raspberry Pi |
+| Medicine box | ESP32-C3 (Super Mini), reed switch or Hall sensor, buzzer, LED; Arduino (esp32 core 3.x), NimBLE-Arduino 2.x |
+| Phone app | Kotlin, Jetpack Compose / Material 3, Room, DataStore, Firebase Cloud Messaging (optional); Gradle 9 wrapper, AGP 9.1, min SDK 26, target 36 |
+| Relay | Node 22 (built-in SQLite, HTTP, Server-Sent Events), optional `firebase-admin`; runs on a laptop for the demo or under systemd on a Raspberry Pi |
 
 ## Directory map
 
 | Path | What's there |
 |---|---|
-| [`app/`](app/README.md) | Android app module, one app for both wearer and caregiver |
-| ↳ [`app/src/main/java/com/fallbracelet/`](app/src/main/java/com/fallbracelet/README.md) | App source: managers, alerts, foreground service |
-| ↳ [`ble/`](app/src/main/java/com/fallbracelet/ble/README.md) | BLE protocol and connection to the bracelet |
-| ↳ [`data/`](app/src/main/java/com/fallbracelet/data/README.md) | Event store, upload queue, settings, recordings |
-| ↳ [`relay/`](app/src/main/java/com/fallbracelet/relay/README.md) | HTTP client for the Pi relay, relay discovery |
-| ↳ [`caregiver/`](app/src/main/java/com/fallbracelet/caregiver/README.md) | Caregiver mode: push, live stream, alarm |
+| [`PRD.md`](PRD.md) | Product requirements (Indonesian): goals, box, app screens, rules, test scenarios |
+| [`app/`](app/README.md) | Android app module, one app for both the patient and the PMO |
+| ↳ [`app/src/main/java/com/fallbracelet/`](app/src/main/java/com/fallbracelet/README.md) | App source: managers and packages below |
+| ↳ [`adherence/`](app/src/main/java/com/fallbracelet/adherence/README.md) | Medication rules (PRD section 7), rules file reader |
 | ↳ [`kotak/`](app/src/main/java/com/fallbracelet/kotak/README.md) | The medicine box: protocol v2 and the simulated ESP32 |
-| ↳ [`ui/`](app/src/main/java/com/fallbracelet/ui/README.md) | Activity, view model, Compose screens |
-| [`firmware/`](firmware/README.md) | Arduino sketches, DevKit wiring, power and pre-release notes |
-| ↳ [`kotak_obat/`](firmware/kotak_obat/README.md) | The medicine box firmware (ESP32-C3, protocol v2); pins in `config.h` |
-| ↳ [`fall_bracelet/`](firmware/fall_bracelet/README.md) | The bracelet firmware |
-| ↳ [`fall_bracelet_oled/`](firmware/fall_bracelet_oled/README.md) | DevKit copy with an OLED status display |
-| ↳ [`ble_msg_test/`](firmware/ble_msg_test/README.md) | Stand-in bracelet for testing the app by hand |
-| [`relay/`](relay/README.md) | Node relay for the Raspberry Pi, caregiver web page, API |
+| ↳ [`ble/`](app/src/main/java/com/fallbracelet/ble/README.md) | BLE scanner for box pairing; GATT client kept as the start of the real box link |
+| ↳ [`data/`](app/src/main/java/com/fallbracelet/data/README.md) | Settings and the patient database `pasien.db` |
+| ↳ [`relay/`](app/src/main/java/com/fallbracelet/relay/README.md) | HTTP client for the relay, relay discovery |
+| ↳ [`caregiver/`](app/src/main/java/com/fallbracelet/caregiver/README.md) | PMO mode: live stream, push, ESKALASI alerts |
+| ↳ [`ui/`](app/src/main/java/com/fallbracelet/ui/README.md) | Activity, view model, Compose screens (`pasien/`, `pmo/`) |
+| [`firmware/`](firmware/README.md) | Arduino sketches |
+| ↳ [`kotak_obat/`](firmware/kotak_obat/README.md) | The medicine box firmware (ESP32-C3, protocol v2); pins and wiring in `config.h` |
+| [`relay/`](relay/README.md) | Node relay, the PMO web page, API |
 | [`PROTOCOL.md`](PROTOCOL.md) | The BLE contract between the box and the app (v2), and the old bracelet one (v1) |
+| [`docs/`](docs/) | Status, development log and test results (Indonesian) |
 | `gradle/` | Gradle wrapper and `libs.versions.toml` (all library and plugin versions) |
 | `build.gradle.kts`, `settings.gradle.kts`, `gradle.properties` | Root Gradle setup: plugins, repositories, the single `:app` module, 4 GB JVM heap |
 
-The PCB (KiCad) and the 3D-printed case are kept outside this repo.
-
 ## The app
 
-On first start the app asks who the phone is for. Either mode can switch to the other later.
+The app is called **Tuntas**; all texts are Indonesian. On first start it asks who the phone is
+for. Either mode can switch to the other later.
 
-### Wearer mode
+### Patient mode (PRD 6.1)
 
-The phone stays near the wearer, keeps the BLE link up in a foreground service and
-reconnects automatically, including after Bluetooth is turned back on.
+Consent, start date and dose time, then box pairing (can be skipped), then four tabs:
 
 | Tab | |
 |---|---|
-| Home | Bluetooth link, state, battery, last daily check-in, recent events; a red "I'm OK" card during a fall countdown; Find (buzz) and Send test alert. A banner lists anything that would stop alerts getting through (permissions, notifications, battery optimisation, full-screen alarms, internet, relay, no caregiver linked) |
-| Events | Every event, with "Seen by …" once a caregiver has acknowledged it, and a note when it was delivered late |
-| Live | Streams the 100 Hz accelerometer, plots total acceleration against the thresholds, records labelled CSV trials for tuning |
-| Settings | Out-of-range warning; wearer name, cancel window and check-in time (written to the bracelet); switch off, forget, clear history; linked caregivers and invite codes; relay address |
+| Beranda | Day of treatment, today's dose and its window, "Saya sudah minum obat", the box (connection, last opening, queued events), the week, travel mode banner |
+| Riwayat | Each day's dose status and source (box or manual), the special reminders shown, and each ESKALASI with "dilihat oleh …" |
+| PMO | Invite code for the PMO, linked PMOs, the last alert sent to the PMO |
+| Pengaturan | Dose time, travel mode, box pairing and test, relay address, rules-file warnings, demo mode (virtual clock), stop |
 
-Events are acknowledged to the bracelet only after they're stored, so nothing is lost if the
-phone is out of range: the bracelet keeps them in flash and resends. The phone queues uploads
-until the relay answers and sends a heartbeat every 5 minutes and whenever the bracelet
-connects or drops.
+On vulnerable days the app shows a special reminder (`PengingatKhususActivity`) with the message
+from the rules file.
 
-### Caregiver mode
+Box openings are acknowledged to the box only after they're stored, so nothing is lost if the
+phone is out of range: the box keeps them in flash and resends with the original time. Until the
+real box's BLE link is added, the app runs a simulated box that speaks the same protocol
+([`kotak/`](app/src/main/java/com/fallbracelet/kotak/README.md)).
 
-Link to a wearer with the 6-digit code from the wearer's Settings → Invite a caregiver. A
-fall or SOS opens a full-screen alarm, even on a locked phone (Firebase Cloud Messaging). The
-dashboard shows each wearer's online state, bracelet, battery, last check-in and a day / week /
-all history, with Acknowledge on alarms. A caregiver can follow several wearers.
+### PMO mode (PRD 6.2)
 
-The relay also serves the same caregiver view as a web page at `http://<pi address>:8787/`.
+Link to a patient with the 6-digit code from the patient's PMO tab. Each patient shows the day
+of treatment, the 7-day row and the alert card for the newest unseen ESKALASI. A new or re-sent
+ESKALASI rings and opens a screen over the lock screen with "Tandai dilihat" / "Nanti"; the
+patient then sees "Dilihat oleh …". The relay serves the same view as a web page at
+`http://<relay address>:8787/`.
 
 ## Build and run
 
 **App** (needs JDK 17+ and the Android SDK; `app/google-services.json` from the Firebase
-project is optional and not in git; without it there is no push). GitHub Actions builds the
-debug APK on every push (`.github/workflows/build-apk.yml`, artifact `apk-debug`):
+project is optional and not in git; without it there is no push and PMO phones use the live
+stream). GitHub Actions builds the debug APK on every push (`.github/workflows/build-apk.yml`,
+artifact `apk-debug`):
 
 ```bash
 ./gradlew :app:assembleDebug
@@ -88,17 +94,28 @@ debug APK on every push (`.github/workflows/build-apk.yml`, artifact `apk-debug`
 Debug builds point at the relay address in `app/src/debug/res/values/relay.xml`; the app also
 finds the relay by itself on the local WiFi if its address changes.
 
-**Firmware** (`arduino-cli` with the esp32 core 3.x and the libraries in
-[`firmware/README.md`](firmware/README.md)):
+**Firmware** (`arduino-cli` with the esp32 core 3.x and NimBLE-Arduino 2.x, see
+[`firmware/kotak_obat/README.md`](firmware/kotak_obat/README.md)):
 
 ```bash
-arduino-cli compile --fqbn esp32:esp32:XIAO_ESP32C3 firmware/fall_bracelet
+arduino-cli compile --fqbn esp32:esp32:esp32c3:CDCOnBoot=cdc firmware/kotak_obat
 ```
 
-**Relay** (Node 22; deploy steps for the Pi in [`relay/README.md`](relay/README.md)):
+**Relay** (Node 22; laptop and Pi steps in [`relay/README.md`](relay/README.md)):
 
 ```bash
 cd relay && npm ci && npm test && npm start
 ```
 
-The UI uses the dark palette from the project's web theme (`ui/theme/Theme.kt`).
+## Legacy bracelet code
+
+Left over from the fork and not used by the app:
+
+- `firmware/fall_bracelet/`, `firmware/fall_bracelet_oled/`, `firmware/ble_msg_test/`: the
+  bracelet firmware, its OLED DevKit copy and a stand-in bracelet ([`firmware/README.md`](firmware/README.md)).
+- `ble/BleProtocol.kt`, `ble/BraceletConnection.kt` and `BleProtocolTest`: the v1 protocol and
+  its GATT client, kept as the starting point for the real box link.
+- In the relay: the FALL / SOS / LOW_BATTERY event types and their re-push timer, and the
+  `wearers` naming in the API and database.
+- The Kotlin package `com.fallbracelet` and the class names `FallBraceletApp` /
+  `FallBraceletTheme`.

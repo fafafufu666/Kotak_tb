@@ -8,13 +8,14 @@ import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.os.ParcelUuid
+import com.fallbracelet.kotak.KotakProtokol
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 
 data class FoundDevice(val address: String, val name: String, val rssi: Int)
 
-/** Finds bracelets by the service UUID in their advertisement. */
+/** Finds medicine boxes by the protocol v2 service UUID in their advertisement. */
 @SuppressLint("MissingPermission") // The UI asks for BLUETOOTH_SCAN before scanning.
 class BleScanner(private val context: Context) {
 
@@ -27,7 +28,7 @@ class BleScanner(private val context: Context) {
         }
         val callback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult) {
-                val name = result.scanRecord?.deviceName ?: result.device.name ?: BleProtocol.DEVICE_NAME_PREFIX
+                val name = result.scanRecord?.deviceName ?: result.device.name ?: KotakProtokol.AWALAN_NAMA
                 trySend(FoundDevice(result.device.address, name, result.rssi))
             }
 
@@ -35,7 +36,7 @@ class BleScanner(private val context: Context) {
                 close(IllegalStateException("Scan failed ($errorCode)"))
             }
         }
-        val filter = ScanFilter.Builder().setServiceUuid(ParcelUuid(BleProtocol.SERVICE)).build()
+        val filter = ScanFilter.Builder().setServiceUuid(ParcelUuid(KotakProtokol.LAYANAN)).build()
         val settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
         scanner.startScan(listOf(filter), settings, callback)
         awaitClose { scanner.stopScan(callback) }

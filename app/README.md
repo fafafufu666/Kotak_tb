@@ -26,7 +26,9 @@ original FallBracelet app); the Kotlin package stays `com.fallbracelet`.
 
 | File | Covers |
 |---|---|
-| `BleProtocolTest.kt` | Byte layouts against `firmware/fall_bracelet/ble_protocol.h` |
+| `KotakProtokolTest.kt` | Protocol v2 byte layouts, and `firmware/kotak_obat/ble_protocol.h` against the app's mirror |
+| `KotakSimulasiTest.kt` | The simulated box behaves like the firmware should (PRD 5.2 F1–F6) |
+| `BleProtocolTest.kt` | Legacy: bracelet protocol v1 byte layouts against `firmware/fall_bracelet/ble_protocol.h` |
 | `ForegroundStartGateTest.kt` | Stopping `CaregiverService` during startup doesn't crash |
 | `TampilanPmoTest.kt` | PMO mode reads the relay like the web page: dashboard, demo/real filter, which ESKALASI ring, the 7-day row, merging updates |
 | `AturanProgramTest.kt` | Both rules files are valid; a broken section falls back alone with a warning |
@@ -37,8 +39,8 @@ original FallBracelet app); the Kotlin package stays `com.fallbracelet`.
 From `gradle/libs.versions.toml`: Compose BOM, Material 3, Activity Compose, Lifecycle
 (ViewModel, runtime, service), kotlinx-coroutines (+ play-services), Room (KSP), DataStore
 Preferences, Firebase BOM / Messaging, JUnit 4, and `org.json` for unit tests only (Android's own
-copy is stubbed in JVM tests). Talks to the bracelet over BLE
-([`PROTOCOL.md`](../PROTOCOL.md)) and to the Pi relay over HTTP ([`relay/`](../relay/README.md)).
+copy is stubbed in JVM tests). Talks to the medicine box over BLE protocol v2
+([`PROTOCOL.md`](../PROTOCOL.md); a simulated box until the real link is added) and to the Pi relay over HTTP ([`relay/`](../relay/README.md)).
 
 ## Usage notes
 

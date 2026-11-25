@@ -3,9 +3,9 @@
 ## Purpose
 
 The core logic of PRD section 7, written as pure functions with no Android types so it is
-covered by JVM unit tests (pure functions, no Android types). Every number and text comes
-from `app/src/main/assets/aturan_program.json` (PRD section 8); none is written in the code.
-Nothing in the app calls this package yet; the screens arrive in stage 2.
+covered by JVM unit tests. Every number and text comes from
+`app/src/main/assets/aturan_program.json` (PRD section 8); none is written in the code.
+Used by `PasienManager`, `pengingat/`, `data/` and the patient screens in `ui/pasien/`.
 
 ## Contents
 
