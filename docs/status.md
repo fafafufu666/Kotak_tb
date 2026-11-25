@@ -1,7 +1,7 @@
 # Status pengembangan
 
 ## 1. Tahap saat ini
-Tahap 0 sampai 6 (P9), uji awal Tahap 7 dengan kotak tiruan, dan "Rapikan PMO" ada di `main` (dan di GitHub). Cabang `tautan-ble` (25-11-2026): kotak memakai **ESP32 DevKit** (bukan lagi ESP32-C3 Super Mini), firmware kotak berjalan di papan itu, dan aplikasi punya tautan BLE ke kotak asli; diuji dengan papan saja (tutup lewat perintah serial), lihat `docs/hasil_uji.md`.
+Semua pekerjaan ada di `main` (dan di GitHub); tidak ada cabang lain. Tahap 0 sampai 6 (P9), uji awal Tahap 7 dengan kotak tiruan, "Rapikan PMO", dan (25-11-2026) kotak memakai **ESP32 DevKit** (bukan lagi ESP32-C3 Super Mini), firmware kotak berjalan di papan itu, dan aplikasi punya tautan BLE ke kotak asli; diuji dengan papan saja (tutup lewat perintah serial), lihat `docs/hasil_uji.md`.
 Berikutnya: merakit sensor tutup, buzzer, dan LED ke DevKit (pin di `firmware/kotak_obat/README.md`), lalu uji Tahap 7 sesungguhnya. Syarat skenario 6 uji awal (teks notifikasi dan saluran gelang) sudah dikerjakan, tinggal dicek ulang.
 
 ## 2. Sudah jadi dan sudah diuji
@@ -37,7 +37,7 @@ Berikutnya: merakit sensor tutup, buzzer, dan LED ke DevKit (pin di `firmware/ko
 
 - Tahap 7 uji awal (24-11-2026 01.05–01.20 WIB, kotak tiruan, relay laptop lewat WiFi): skenario 1–5, 7, 8 lulus; skenario 6 lulus bersyarat. Rincian dan angka di `docs/hasil_uji.md`.
 
-- Kotak asli di ESP32 DevKit (cabang `tautan-ble`, 25-11-2026; build lokal 113 tes unit lulus, firmware dikompilasi tanpa peringatan untuk DevKit dan C3). Firmware: pin bawaan DevKit (tutup GPIO27, buzzer GPIO26, LED GPIO2), perintah serial `buka`/`tutup`/`sensor` untuk uji tanpa sensor. Aplikasi: `kotak/TautanBle.kt` (tautan GATT ke kotak asli), `KotakManager` memilih kotak asli bila ada kotak dipasangkan dan kotak simulasi sesudah "Lewati", `KotakService` (layanan latar `connectedDevice`) menjaga sambungan. Diuji 20.40–20.57 WIB di HP Samsung SM-G990E dengan papan `Kotak-D1BE`: pindai menemukan kotak; sambungan terenkripsi; kejadian tutup sampai ±0,5 s; antrean saat Bluetooth HP mati masuk dengan jam aslinya; kejadian sampai saat aplikasi di latar dan layar mati; jam minum dan lama alarm terkirim lewat CONFIG; kotak berbunyi tepat pada jam minum dan berhenti saat dibuka; TEST dan FIND sampai ke kotak.
+- Kotak asli di ESP32 DevKit (cabang `tautan-ble`, digabung ke `main` 25-11-2026; build lokal 113 tes unit lulus, firmware dikompilasi tanpa peringatan untuk DevKit dan C3). Firmware: pin bawaan DevKit (tutup GPIO27, buzzer GPIO26, LED GPIO2), perintah serial `buka`/`tutup`/`sensor` untuk uji tanpa sensor. Aplikasi: `kotak/TautanBle.kt` (tautan GATT ke kotak asli), `KotakManager` memilih kotak asli bila ada kotak dipasangkan dan kotak simulasi sesudah "Lewati", `KotakService` (layanan latar `connectedDevice`) menjaga sambungan. Diuji 20.40–20.57 WIB di HP Samsung SM-G990E dengan papan `Kotak-D1BE`: pindai menemukan kotak; sambungan terenkripsi; kejadian tutup sampai ±0,5 s; antrean saat Bluetooth HP mati masuk dengan jam aslinya; kejadian sampai saat aplikasi di latar dan layar mati; jam minum dan lama alarm terkirim lewat CONFIG; kotak berbunyi tepat pada jam minum dan berhenti saat dibuka; TEST dan FIND sampai ke kotak.
 - Perbaikan dari uji itu: (1) pemindai masih mencari UUID gelang sehingga kotak tidak pernah ditemukan; (2) Android memakai daftar layanan lama dari cache untuk papan yang dulu berpasangan sebagai gelang, sekarang aplikasi menyegarkan cache sendiri; (3) kejadian pertama sesudah tersambung baru sampai 10 s kemudian, sekarang ±0,4 s.
 
 ## 3. Sudah dibuat tetapi belum diuji
@@ -149,4 +149,4 @@ Asumsi Claude di Tahap 2b:
 - Lama pengobatan sudah dicek (24-11-2026) ke Juknis Penatalaksanaan TB Sensitif Obat (Kepdirjen P2 HK.02.02/C/5401/2025, hlm. 51–53): 2HRZE/4HR setiap hari, 1 bulan pengobatan = 28 hari, jadi 56 + 112 = 168 hari. Pasien dengan paduan 4 bulan (2HPMZ/2HPM) atau TB ekstra paru berat (9–12 bulan) butuh `total_hari` lain; aplikasi hanya punya satu nilai untuk semua pasien.
 
 ## 8. Terakhir diperbarui
-25-11-2026, sesudah tautan BLE ke kotak asli di ESP32 DevKit diuji (cabang `tautan-ble`)
+25-11-2026, sesudah tautan BLE ke kotak asli di ESP32 DevKit diuji dan cabang `tautan-ble` digabung ke `main`
