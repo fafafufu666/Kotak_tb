@@ -38,10 +38,13 @@ class TeksPersetujuanTest {
         assertEquals(emptyList<BlokTeks>(), TeksPersetujuan.bagi("\n  \n"))
     }
 
-    /** The shipped file is still the placeholder, and it is read as a title plus paragraphs. */
+    /** The shipped text starts with its title, has its sections, and no placeholder is left in it. */
     @Test fun theAssetFileParses() {
         val file = listOf("src/main/assets/persetujuan.md", "app/src/main/assets/persetujuan.md").map(::File).first { it.exists() }
-        val blok = TeksPersetujuan.bagi(file.readText())
+        val teks = file.readText()
+        val blok = TeksPersetujuan.bagi(teks)
         assertEquals(BlokTeks.Judul::class, blok.first()::class)
+        assertEquals(4, blok.count { it is BlokTeks.Subjudul })
+        assertEquals(false, teks.contains("DIISI"))
     }
 }

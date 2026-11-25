@@ -133,7 +133,7 @@ Asumsi Claude di Tahap 2b:
 
 ## 6. Menunggu dari saya
 - Untuk demo: laptop, HP pasien, dan HP/laptop PMO di satu WiFi atau hotspot; port 8787 dibuka di firewall laptop.
-- Cek usulan Claude (24-11-2026): nama aplikasi "Tuntas", nilai dan teks di `aturan_program.json` (`status_nilai` "USULAN"), lalu ganti `status_nilai` ke FINAL bila setuju. Teks persetujuan di `app/src/main/assets/persetujuan.md` masih menunggu.
+- Cek usulan Claude (24-11-2026): nama aplikasi "Tuntas", nilai dan teks di `aturan_program.json` (`status_nilai` "USULAN"), lalu ganti `status_nilai` ke FINAL bila setuju. Teks persetujuan di `app/src/main/assets/persetujuan.md` kini usulan Claude (25-11-2026), menunggu dicek; bila aplikasi dipakai pasien sungguhan, teks ini perlu ditinjau komite etik bersama protokol ujinya (PRD bagian 13).
 - Memutuskan apakah prototipe perlu lama pengobatan per pasien (paduan 4 bulan atau 9–12 bulan; lihat bagian 7) atau cukup 168 hari untuk semua.
 - Cek peta pin DevKit usulan Claude (PRD 5.1) sebelum merakit, dan posisi magnet pada kotak putar.
 - Coba penghapusan tiga saluran notifikasi lama di HP yang pernah memasang versi lama aplikasi ini (misalnya tablet Xiaomi); HP Samsung uji belum pernah punya saluran itu.

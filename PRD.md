@@ -102,7 +102,7 @@ Rujukan visual: mockup tiga layar (beranda pasien, pengingat khusus, tampilan pe
 
 | ID | Layar | Isi dan perilaku | Prioritas |
 |---|---|---|---|
-| P1 | Persetujuan | Ditampilkan sebelum memakai aplikasi. Isi dari `assets/persetujuan.md` (**teks dibuat terpisah**; sementara berisi penanda). Pasien wajib mencentang setuju; waktu persetujuan disimpan. Ada tautan "Berhenti ikut program" di Pengaturan | P0 |
+| P1 | Persetujuan | Ditampilkan sebelum memakai aplikasi. Isi dari `assets/persetujuan.md` (**teks dibuat terpisah**; sejak 25-11-2026 berisi usulan yang menunggu dicek). Pasien wajib mencentang setuju; waktu persetujuan disimpan. Ada tautan "Berhenti ikut program" di Pengaturan | P0 |
 | P2 | Mulai pengobatan | Isi nama panggilan, tanggal mulai pengobatan, jam minum obat. Lama pengobatan dan fase diambil dari konfigurasi | P0 |
 | P3 | Pasangkan kotak | Pindai, pasangkan (bonding), uji bunyi. Dipakai ulang dari repo | P0 |
 | P4 | Beranda | Nama aplikasi, "Halo, [nama]"; cincin kemajuan **"Hari X dari N"**; label fase; kartu status kotak (terhubung/terputus, terakhir dibuka: hari/jam); kartu dosis hari ini (belum/sudah dari kotak/sudah dikonfirmasi/terlambat/terlewat) dengan tombol **"Saya sudah minum obat"** (konfirmasi manual, simulasi bukti); deret 7 hari Sen–Min; navigasi Beranda, Riwayat, PMO, Pengaturan | P0 |
@@ -258,7 +258,7 @@ Verifikasi minum obat dengan video atau AI; versi kotak GSM tanpa smartphone; da
 
 ## 14. Hal terbuka
 - Nilai dan teks **[DIISI ABYAN]** di bagian 8.
-- Teks persetujuan (`assets/persetujuan.md`), dibuat terpisah.
+- Teks persetujuan (`assets/persetujuan.md`): usulan Claude 25-11-2026, menunggu dicek Abyan; perlu tinjauan etik bila dipakai pada pasien sungguhan.
 - Peta pin ESP32 DevKit (usulan Claude, bagian 5.1) dan penempatan magnet/sensor pada kotak putar **[CEK saat perakitan]**.
 - Proyek Firebase mana yang dipakai untuk `google-services.json` dan kunci FCM relay.
 - Lama pengobatan dan fase dari PNPK TB **[CEK]**.
