@@ -192,8 +192,11 @@
     <string name="atur_ubah_nama">Ubah nama panggilan</string>
     <string name="atur_tanggal_mulai">Mulai pengobatan: %1$s</string>
     <string name="atur_kotak">Kotak obat</string>
-    <string name="atur_kotak_dipasangkan">Dipasangkan: %1$s</string>
-    <string name="atur_kotak_tidak_ada">Belum ada kotak. Kotak simulasi dipakai.</string>
+    <string name="atur_kotak_asli">%1$s · protokol v%2$d</string>
+    <string name="saluran_kotak">Sambungan ke kotak obat</string>
+    <string name="saluran_kotak_isi">Menjaga sambungan ke kotak obat agar pembukaan kotak langsung tercatat.</string>
+    <string name="layanan_kotak_terhubung">Tersambung ke kotak obat</string>
+    <string name="layanan_kotak_mencari">Mencari kotak obat…</string>
     <string name="atur_kotak_simulasi">Kotak simulasi (ESP32 tiruan di aplikasi): %1$s · protokol v%2$d</string>
     <string name="atur_kotak_jam">Di kotak: jam minum %1$s, alarm %2$d menit</string>
     <string name="atur_kotak_jam_belum">Jam minum belum terkirim ke kotak.</string>

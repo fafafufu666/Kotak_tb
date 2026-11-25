@@ -81,3 +81,53 @@ Ini **uji awal** sebelum kotak asli jadi. Semua skenario dijalankan ulang dengan
 - Di tablet Xiaomi, izin layar penuh Android kembali mati setelah tiap pembaruan APK
   (notifikasi pengingat khusus tercatat `FSI_REQUESTED_BUT_DENIED`). Kartu peringatan di Beranda
   menampilkannya; sebelum demo, pasang APK final lalu nyalakan izin itu sekali lagi.
+
+## Uji pertama dengan kotak asli (papan saja) — 25-11-2026, 20.40–20.56 WIB
+
+Ini uji **papan ESP32 dengan firmware kotak dan tautan BLE aplikasi**, sebelum sensor tutup,
+buzzer, dan LED luar dipasang. Tutup dibuka/ditutup lewat perintah serial `buka`/`tutup` di
+firmware. Tahap 7 sesungguhnya tetap diulang sesudah kotak dirakit.
+
+**Kondisi uji**
+
+| | |
+|---|---|
+| HP pasien | Samsung SM-G990E (Android 16), aplikasi dari cabang `tautan-ble` |
+| Kotak | ESP32 DevKit `Kotak-D1BE` (ESP32-WROOM-32, CP2102), firmware `kotak_obat` dengan pin bawaan DevKit, tanpa komponen terpasang |
+| Relay / PMO | Tidak dipakai di uji ini (skenario 4–8 tidak bergantung pada kotak asli) |
+| Waktu | Jam nyata, bukan mode demo |
+| Cara ukur | Jam laptop saat perintah serial dikirim dibandingkan dengan logcat HP (jam keduanya disetel dari jaringan; selisih tidak diukur) |
+
+**Ringkasan**
+
+| # | Skenario | Hasil | Terukur |
+|---|---|---|---|
+| 1 | Kotak terhubung di Beranda | Lulus | Pindai menemukan `Kotak-D1BE`; Beranda "Terhubung", tanpa label Simulasi |
+| 2 | Jam minum: kotak berbunyi; buka kotak → "Sudah diminum (kotak)" ≤ 5 s | Lulus sebagian | Kotak mulai berbunyi 20.54.59 (jam minum 20.55), Beranda "Kotak sedang berbunyi"; `buka` → bunyi berhenti, kejadian sampai di HP ±0,5 s kemudian. Status "Sudah diminum (kotak)" sudah ada dari pembukaan 20.42; notifikasi HP tidak diuji |
+| 3 | Bluetooth mati, kotak dibuka, Bluetooth nyala → kejadian masuk dengan jam aslinya | Lulus | Dibuka 20.43.27 saat Bluetooth HP mati; Bluetooth nyala 20.44.28 → tersambung 1,5 s kemudian, kejadian tersimpan 0,5 s sesudahnya; Riwayat "20.43" |
+
+**Rincian**
+
+- Pemasangan: HP masih punya ikatan (bond) lama dengan papan ini dari firmware gelang, dan
+  Android memakai daftar layanan lama dari cache ("box service not found"). Aplikasi sekarang
+  menyegarkan cache itu sendiri; sesudahnya sambungan terenkripsi tanpa dialog pasangan baru,
+  dan 8 kejadian `BOX_ON` yang menumpuk di kotak terkirim dan di-ACK.
+- Kejadian pertama sesudah tersambung semula baru sampai 10 s kemudian (kotak mengirim sebelum
+  aplikasi siap, lalu menunggu waktu kirim ulang). Diperbaiki di aplikasi; sesudahnya kejadian
+  antrean sampai 0,4 s sesudah tersambung.
+- Pembukaan saat terhubung: `buka` dikirim 20.42.57,59 → tersimpan di HP 20.42.58,06.
+- Latar: aplikasi di latar dan layar mati 1 menit → `buka` → kejadian tersimpan; layanan
+  `KotakService` (connectedDevice) berjalan dengan notifikasi "Tersambung ke kotak obat".
+- Pengaturan: "Di kotak: jam minum 07.00, alarm 10 menit" terbaca dari CONFIG kotak; mengubah jam
+  minum ke 20.55 langsung terkirim ke kotak; "Kirim kejadian uji" → "Kejadian uji diterima".
+- Skenario 2 tidak bersih: pembukaan 20.42–20.46 sudah masuk jendela dosis 20.55, jadi aplikasi
+  menganggap dosis sudah diminum dan tidak memberi notifikasi. Kotak tetap berbunyi karena
+  catatan pembukaannya hilang saat firmware dipasang ulang 20.48.
+
+**Belum teruji**
+
+- Sensor tutup, buzzer, dan LED sungguhan (belum dipasang); "Uji bunyi" hanya terlihat sebagai
+  perintah di log kotak.
+- Notifikasi HP pada jam minum bersama bunyi kotak (skenario 2 utuh).
+- Antrean flash sesudah kotak mati listrik.
+- Pemasangan pertama di HP yang belum pernah berpasangan dengan papan ini (dialog pasangan Android).

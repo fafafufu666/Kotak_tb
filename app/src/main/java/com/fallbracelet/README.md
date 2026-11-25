@@ -14,9 +14,9 @@ ESKALASI from the relay, like the relay's web page).
 | `HpManager.kt` | Phone settings and the relay link as the patient's phone: registration, nickname, heartbeat every 5 min (the relay tells the PMO when the phone goes quiet), relay discovery, box pairing address, mode switch |
 | `PasienManager.kt` | Patient-mode owner: reads `assets/aturan_program.json` once at start, records box openings (`catatPembukaanKotak`, the one path for the simulated and the real box) and manual confirmations, runs demo mode, works out `KeadaanPasien` every 15 s with `adherence/`, sends ESKALASI and STATUS_HARIAN |
 | [`adherence/`](adherence/README.md) | Android-free medication rules (PRD section 7) and the rules file reader |
-| [`kotak/`](kotak/README.md) | The medicine box: protocol v2, the simulated ESP32, `KotakManager` |
+| [`kotak/`](kotak/README.md) | The medicine box: protocol v2, the BLE link to the real box, the simulated ESP32, `KotakManager`, `KotakService` |
 | [`pengingat/`](pengingat/) | Reminder alarms and notifications (P5) |
-| [`ble/`](ble/README.md) | BLE scanner (P3) and the bracelet's GATT client, kept as the starting point for the real box's `TautanKotak` |
+| [`ble/`](ble/README.md) | BLE scanner for box pairing (P3) and `LinkState` |
 | [`data/`](data/README.md) | DataStore settings, the patient database `pasien.db` |
 | [`relay/`](relay/README.md) | HTTP client for the relay and relay discovery on the local WiFi |
 | [`caregiver/`](caregiver/README.md) | PMO mode: live stream, push, ESKALASI notifications and alert screen, "Tandai dilihat" |
@@ -26,7 +26,7 @@ ESKALASI from the relay, like the relay's web page).
 ## How it works
 
 ```
-box (simulated) ─protocol v2─▶ KotakManager ─▶ PasienManager ─ESKALASI / STATUS_HARIAN─▶ WearerRelay ─▶ relay
+box (BLE, or simulated) ─protocol v2─▶ KotakManager ─▶ PasienManager ─ESKALASI / STATUS_HARIAN─▶ WearerRelay ─▶ relay
 relay ─SSE (FCM later)─▶ CaregiverManager ─▶ NotifikasiPmo / AlarmActivity / ui/pmo/PmoApp
 ```
 

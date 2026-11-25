@@ -1,6 +1,6 @@
 # PRD: Prototipe Kotak Obat Terhubung + Aplikasi Pasien/PMO
 
-Versi 0.1 · 23-11-2026 · Pemilik produk: Abyan (mahasiswa FK Unpad, Esai Gagasan skema Prototype)
+Versi 0.2 · 25-11-2026 (papan kotak diganti ESP32 DevKit) · Versi 0.1 · 23-11-2026 · Pemilik produk: Abyan (mahasiswa FK Unpad, Esai Gagasan skema Prototype)
 
 > **Cara membaca dokumen ini**
 > - **[DIISI ABYAN]**: nilai atau teks yang ditentukan Abyan. Di kode, bagian ini **harus** dibaca dari file konfigurasi (bagian 8), bukan ditulis langsung di kode.
@@ -47,7 +47,7 @@ Aplikasinya **satu**, dengan dua mode. Ini mengikuti pola pemakai/pendamping di 
 ## 4. Arsitektur (memakai ulang repo saudara)
 
 ```
-Kotak (ESP32-C3 + reed switch/Hall + buzzer + LED)
+Kotak (ESP32 DevKit + reed switch/Hall + buzzer + LED)
    │ BLE (protokol repo saudara: STATUS, EVENT/EVENT_ACK, TIME, CONFIG, COMMAND)
    ▼
 HP pasien (mode Pasien): jadwal, status dosis, hari rawan, pesan, antrean unggah
@@ -66,14 +66,14 @@ HP PMO (mode PMO) atau halaman web relay
 | Relay app (`relay/`) + server (`relay/server.mjs`) | Registrasi, kode undangan 6 digit, tautan, unggah kejadian, heartbeat, ACK "dilihat", push, SSE, pencarian relay di Wi-Fi | Jenis kejadian baru; timer ulang-kirim untuk ESKALASI |
 | Mode PMO (`caregiver/`) | Tautan, push, stream, dasbor, riwayat | Tampilan sesuai bagian 6 |
 | Firmware | Struktur `ble_link`, `storage` (antrean flash), `battery` (opsional) | Hapus sensor jatuh (MPU6050), detektor, dan motor; tambah sensor tutup dan buzzer |
-| `ble_msg_test` | Alat pengganti untuk uji aplikasi tanpa kotak | Perintah baru: `buka`, `tutup` |
+| `ble_msg_test` | Alat pengganti untuk uji aplikasi tanpa kotak | Diganti perintah serial `buka`, `tutup`, `sensor` di firmware kotak sendiri (25-11-2026) |
 
 **Penamaan:** ganti `applicationId` (misalnya `id.esgas.kotakobat`) agar bisa terpasang bersama aplikasi saudara. Nama package internal Kotlin **boleh tetap** untuk menghemat waktu. Nama aplikasi dan perangkat BLE harus **netral**, tanpa kata "TB" atau "tuberkulosis": aplikasi `[NAMA APLIKASI]`, perangkat `Kotak-XXXX`.
 
 ## 5. Perangkat keras dan firmware
 
 ### 5.1 Komponen
-- ESP32-C3 Super Mini. **[CEK]** Repo saudara hanya punya peta pin untuk XIAO ESP32-C3 dan ESP32 DevKit. Peta pin Super Mini harus ditambahkan, dan pin yang dipakai dikonfirmasi ke Abyan.
+- ESP32 DevKit (ESP32-WROOM-32, USB lewat CP2102). Sejak 25-11-2026 menggantikan ESP32-C3 Super Mini. Peta pin bawaan: sensor tutup GPIO27 (ke GND, pull-up internal), buzzer GPIO26, LED bawaan papan GPIO2, baterai opsional GPIO34 (rincian di `firmware/kotak_obat/README.md`). Semua pin bisa diubah di `config.h`.
 - Reed switch NO + magnet neodymium (alternatif: sensor Hall A3144).
 - Buzzer aktif 3 V dan LED status (LED bawaan papan, atau LED terpisah).
 - Kotak obat putar bulat 7 sekat.
@@ -235,8 +235,8 @@ Kejadian dari mode demo diberi tanda `demo=true` di relay dan dasbor.
 | 1 | Logika bagian 7 + konfigurasi bagian 8 + tes unit lulus | Tidak |
 | 2 | Layar pasien P1–P8 dengan **kotak simulasi** dan mode demo | Tidak |
 | 3 | Relay + mode PMO: eskalasi dan STATUS_HARIAN sampai ke HP kedua / web relay | Tidak |
-| 4 | Protokol v2 + `ble_msg_test` versi kotak (perintah `buka`) diuji dengan aplikasi | ESP32 apa saja |
-| 5 | Firmware kotak asli: reed/Hall, buzzer, LED, antrean offline | Ya |
+| 4 | Protokol v2 diuji dengan aplikasi (kotak simulasi di aplikasi) | Tidak |
+| 5 | Firmware kotak di ESP32 DevKit + tautan BLE aplikasi ke kotak asli (perintah serial `buka`/`tutup` sebelum sensor dipasang); lalu reed/Hall, buzzer, LED dirakit | Ya |
 | 6 | P9 mode bepergian; rapikan UI sesuai mockup | Tidak |
 | 7 | Uji skenario bagian 12, rekam video cadangan demo | Ya |
 
@@ -259,6 +259,6 @@ Verifikasi minum obat dengan video atau AI; versi kotak GSM tanpa smartphone; da
 ## 14. Hal terbuka
 - Nilai dan teks **[DIISI ABYAN]** di bagian 8.
 - Teks persetujuan (`assets/persetujuan.md`), dibuat terpisah.
-- Peta pin ESP32-C3 Super Mini dan penempatan magnet/sensor pada kotak putar **[CEK saat perakitan]**.
+- Peta pin ESP32 DevKit (usulan Claude, bagian 5.1) dan penempatan magnet/sensor pada kotak putar **[CEK saat perakitan]**.
 - Proyek Firebase mana yang dipakai untuk `google-services.json` dan kunci FCM relay.
 - Lama pengobatan dan fase dari PNPK TB **[CEK]**.

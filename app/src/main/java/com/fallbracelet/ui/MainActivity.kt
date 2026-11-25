@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import com.fallbracelet.caregiver
+import com.fallbracelet.kotak
 import com.fallbracelet.ui.pasien.PasienViewModel
 import com.fallbracelet.ui.pasien.tepiKeTepiTerang
 import com.fallbracelet.ui.theme.FallBraceletTheme
@@ -20,6 +21,7 @@ class MainActivity : ComponentActivity() {
 
     private val permissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         vm.retryConnect()
+        kotak.cobaLagi()
     }
 
     private val enableBluetooth = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -47,6 +49,7 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         caregiver.setVisible(true)
+        kotak.cobaLagi()
     }
 
     override fun onStop() {

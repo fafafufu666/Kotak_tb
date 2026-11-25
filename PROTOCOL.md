@@ -1,11 +1,11 @@
 # Medicine box ↔ phone BLE protocol (version 2)
 
-This is the contract between the medicine box's ESP32-C3 firmware
+This is the contract between the medicine box's ESP32 firmware
 (`firmware/kotak_obat/ble_protocol.h`) and the Android app
 (`app/src/main/java/com/fallbracelet/kotak/KotakProtokol.kt`). Change both together and bump
 `PROTOCOL_VERSION`; the unit test `KotakProtokolTest` reads the header and fails if the numbers
-differ. Until the box hardware exists, the app's simulated ESP32 (`kotak/KotakSimulasi.kt`)
-implements the box side of this contract and the app talks to it only in these bytes.
+differ. The app's BLE link is `kotak/TautanBle.kt`; its simulated ESP32 (`kotak/KotakSimulasi.kt`)
+implements the box side of the same contract, and the app talks to it only in these bytes.
 
 The box records each lid opening with its own clock and keeps it in flash until the phone has
 stored it (EVENT, then EVENT_ACK), so openings while the phone is away arrive later with their
@@ -102,15 +102,14 @@ The box requires an encrypted, bonded link for every characteristic, as the brac
 
 # Legacy: bracelet ↔ phone protocol (version 1)
 
-The rest of this file is the FallBracelet protocol the fork started from. The app no longer uses
-it: only the legacy code still follows it (`ble/BleProtocol.kt` and `ble/BraceletConnection.kt`,
-kept as the starting point for the real box link, plus `firmware/fall_bracelet*` and
-`firmware/ble_msg_test`). It goes when that code is removed; the box uses version 2 above.
+The rest of this file is the FallBracelet protocol the fork started from. The app no longer has
+any of it (its `ble/BleProtocol.kt` and GATT client were replaced by `kotak/TautanBle.kt` on
+25-11-2026); only the legacy firmware still follows it (`firmware/fall_bracelet*`,
+`firmware/ble_msg_test`). It goes when that firmware is removed; the box uses version 2 above.
 
 
 This is the contract between the ESP32-C3 firmware (`firmware/fall_bracelet/ble_protocol.h`)
-and the Android app (`app/src/main/java/com/fallbracelet/ble/BleProtocol.kt`). Change both
-sides together and bump `PROTOCOL_VERSION`.
+and the original FallBracelet app's `ble/BleProtocol.kt` (no longer in this repo).
 
 The spec leaves the alert channel open; this implements **option B — BLE → phone companion
 app**. The bracelet detects and queues events; the phone stores them, raises a notification,

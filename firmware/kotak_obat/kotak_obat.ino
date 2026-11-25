@@ -1,4 +1,4 @@
-// Medicine box firmware (PRD section 5): ESP32-C3 + lid sensor + buzzer + LED.
+// Medicine box firmware (PRD section 5): ESP32 DevKit + lid sensor + buzzer + LED.
 //
 // Records each lid opening with the clock the phone sets (PRD F1, F3), keeps events in flash
 // until the phone ACKs them (F2), rings at the dose time until the lid opens (F4), answers FIND,
@@ -100,6 +100,7 @@ void handle(const BleMessage& m, uint32_t now) {
       break;
     }
     case BleMessage::CommandMsg:
+      LOG("command %u\n", m.command);
       switch (m.command) {
         case CMD_FIND:
           findUntilMs = now + FIND_MS;
@@ -189,10 +190,35 @@ void publishStatus(uint32_t now) {
     statusAt = now;
   }
 }
+#if SERIAL_COMMANDS
+/** Bench commands on the serial port: "buka", "tutup", "sensor" (see config.h). */
+void checkSerial() {
+  static char line[16];
+  static uint8_t len = 0;
+  while (Serial.available()) {
+    char ch = (char)Serial.read();
+    if (ch != '\n' && ch != '\r') {
+      if (len < sizeof(line) - 1) line[len++] = ch;
+      continue;
+    }
+    if (len == 0) continue;
+    line[len] = 0;
+    len = 0;
+    if (!strcmp(line, "buka")) hw::setLidOverride(1);
+    else if (!strcmp(line, "tutup")) hw::setLidOverride(0);
+    else if (!strcmp(line, "sensor")) hw::setLidOverride(-1);
+    else {
+      LOG("commands: buka, tutup, sensor\n");
+      continue;
+    }
+    LOG("lid: %s\n", hw::lidOverride() < 0 ? "sensor" : (hw::lidOverride() ? "open (by hand)" : "closed (by hand)"));
+  }
+}
+#endif
 }  // namespace
 
 void setup() {
-#if LOG_SERIAL
+#if LOG_SERIAL || SERIAL_COMMANDS
   Serial.begin(115200);
 #endif
   hw::begin();
@@ -201,14 +227,20 @@ void setup() {
   publishConfig();
   lidWasOpen = hw::lidOpen(millis());
   queueEvent(EVT_BOX_ON);
-  LOG("%s ready, protocol v%d, lid pin %d, buzzer pin %d, LED pin %d\n", ble::name(), PROTOCOL_VERSION, PIN_LID,
-      PIN_BUZZER, PIN_LED);
+  LOG("%s ready, protocol v%d, lid pin %d (%s), buzzer pin %d, LED pin %d\n", ble::name(), PROTOCOL_VERSION, PIN_LID,
+      lidWasOpen ? "open" : "closed", PIN_BUZZER, PIN_LED);
+#if SERIAL_COMMANDS
+  LOG("commands: buka, tutup, sensor\n");
+#endif
 }
 
 void loop() {
   uint32_t now = millis();
   BleMessage m;
   while (ble::poll(m)) handle(m, now);
+#if SERIAL_COMMANDS
+  checkSerial();
+#endif
   checkLid(now);
   checkReminder(now);
   checkBattery();

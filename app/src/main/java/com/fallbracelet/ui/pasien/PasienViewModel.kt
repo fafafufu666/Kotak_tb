@@ -21,7 +21,7 @@ class PasienViewModel(app: Application) : AndroidViewModel(app) {
     val pengaturan = p.pengaturan
     val aturan = p.aturan
 
-    // The medicine box (the simulated ESP32 for now), protocol v2
+    // The medicine box in use (the real one or the simulated ESP32), protocol v2
     val linkKotak = k.tautan.link
     val statusKotak = k.tautan.status
     val configKotak = k.tautan.config

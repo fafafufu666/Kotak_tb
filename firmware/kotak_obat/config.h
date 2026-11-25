@@ -3,28 +3,51 @@
 // Pins and options can be changed in two ways:
 //   1. edit the defaults below, or
 //   2. leave this file alone and pass them when compiling, e.g. (one line)
-//        arduino-cli compile --fqbn esp32:esp32:esp32c3:CDCOnBoot=cdc --build-property
-//          "build.extra_flags=-DPIN_LID=5 -DPIN_BUZZER=6" firmware/kotak_obat
+//        arduino-cli compile --fqbn esp32:esp32:esp32 --build-property
+//          "build.extra_flags=-DPIN_LID=25 -DPIN_BUZZER=33" firmware/kotak_obat
 // Any pin set to -1 is not used (e.g. no LED fitted).
 //
-// Defaults are for an ESP32-C3 Super Mini [CEK at assembly: PRD 14]. On the ESP32-C3 avoid the
-// strapping pins GPIO2, GPIO8 and GPIO9 for the lid sensor (they decide the boot mode), and
-// GPIO18/19 (USB) and GPIO20/21 (UART).
+// The box is an ESP32 DevKit (ESP32-WROOM-32, CP2102 USB-serial, 30 or 38 pins). Its defaults are
+// below; compiling for an ESP32-C3 (--fqbn esp32:esp32:esp32c3) picks the Super Mini defaults
+// instead. On the classic ESP32 avoid GPIO6-11 (the flash chip), GPIO1/3 (the USB serial log),
+// the strapping pins GPIO0, 2, 5, 12 and 15 for the lid sensor, and GPIO34-39 for outputs (input
+// only, no internal pull-up).
 #pragma once
+#include <sdkconfig.h>  // CONFIG_IDF_TARGET_*
 
 // --- Pins --------------------------------------------------------------------------------------
 
+#if CONFIG_IDF_TARGET_ESP32C3
+// ESP32-C3 Super Mini (not used for the box any more; kept so the sketch still builds for it)
 #ifndef PIN_LID
-#define PIN_LID 3            // reed switch (NO) or Hall sensor (A3144) output
+#define PIN_LID 3
 #endif
 #ifndef PIN_BUZZER
-#define PIN_BUZZER 4         // active 3 V buzzer (through a transistor if it draws > 20 mA)
+#define PIN_BUZZER 4
 #endif
 #ifndef PIN_LED
-#define PIN_LED 8            // Super Mini's on-board blue LED
+#define PIN_LED 8            // on-board blue LED, lights on LOW
+#endif
+#ifndef LED_ACTIVE_LEVEL
+#define LED_ACTIVE_LEVEL LOW
+#endif
+#else
+// ESP32 DevKit
+#ifndef PIN_LID
+#define PIN_LID 27           // reed switch (NO) to GND, or an A3144 Hall sensor output
+#endif
+#ifndef PIN_BUZZER
+#define PIN_BUZZER 26        // active 3 V buzzer (+ to the pin, - to GND; through an NPN if it draws > 20 mA)
+#endif
+#ifndef PIN_LED
+#define PIN_LED 2            // the DevKit's on-board blue LED, lights on HIGH
+#endif
+#ifndef LED_ACTIVE_LEVEL
+#define LED_ACTIVE_LEVEL HIGH
+#endif
 #endif
 #ifndef PIN_BATTERY
-#define PIN_BATTERY -1       // ADC pin on a 1:2 divider from the LiPo, -1 = USB power only
+#define PIN_BATTERY -1       // ADC pin on a 1:2 divider from the LiPo (GPIO34 on the DevKit), -1 = USB power only
 #endif
 
 // --- Polarity ------------------------------------------------------------------------------------
@@ -44,9 +67,6 @@
 
 #ifndef BUZZER_ACTIVE_LEVEL
 #define BUZZER_ACTIVE_LEVEL HIGH
-#endif
-#ifndef LED_ACTIVE_LEVEL
-#define LED_ACTIVE_LEVEL LOW // the Super Mini's LED lights when the pin is LOW
 #endif
 
 // --- Battery (optional; PRD 5.1: USB power is enough for the demo) ------------------------------
@@ -76,8 +96,13 @@
 #endif
 #define BLE_TX_POWER_DBM 3
 
-// --- Serial log (USB CDC on the Super Mini: compile with CDCOnBoot=cdc to see it) ---------------
+// --- Serial log and bench commands (115200 baud on the DevKit's USB port) ----------------------
 
 #ifndef LOG_SERIAL
 #define LOG_SERIAL 1
+#endif
+// 1: typing "buka", "tutup" or "sensor" on the serial port opens / closes the lid by hand or goes
+// back to the sensor, for testing the box before the lid sensor is wired.
+#ifndef SERIAL_COMMANDS
+#define SERIAL_COMMANDS 1
 #endif

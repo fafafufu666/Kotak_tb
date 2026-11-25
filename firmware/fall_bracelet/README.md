@@ -35,7 +35,7 @@ builds for a classic ESP32 DevKit for breadboard prototyping.
 ## Dependencies
 
 - esp32 Arduino core 3.x, NimBLE-Arduino 2.x, Adafruit MPU6050 (+ Unified Sensor, BusIO).
-- `ble_protocol.h` must match `app/.../ble/BleProtocol.kt`; copies live in
+- `ble_protocol.h` matched the original app's `ble/BleProtocol.kt` (removed from this repo); copies live in
   [`../fall_bracelet_oled/`](../fall_bracelet_oled/README.md) and
   [`../ble_msg_test/`](../ble_msg_test/README.md).
 
